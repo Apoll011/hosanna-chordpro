@@ -53,6 +53,7 @@ export interface Folder {
   name: string;
   parentId?: string | null;
   songCount?: number;
+  folderCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -161,15 +162,6 @@ export interface SyncStatusResponse {
     settings: string;
     admins: string;
   };
-}
-
-export interface CifraResult {
-  cifraclub_url: string;
-  name?: string;
-  artist?: string;
-  youtube_url?: string;
-  cifra?: string;
-  error?: string;
 }
 
 export type PrintModelType = "service" | "folder" | "song";
