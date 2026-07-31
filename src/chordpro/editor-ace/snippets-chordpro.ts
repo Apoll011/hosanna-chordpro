@@ -160,6 +160,9 @@ export function registerChordproSnippets(): void {
 
         "snippet number",
         "   {song_number: \${1:url}}",
+
+        "snippet cc",
+        "   {chorus}",
       ].join("\n");
       exports.scope = "chordpro";
     },
