@@ -1,4 +1,4 @@
-import { Templates, UpdateTemplateSettings } from "@hosanna/shared";
+import { Templates, UpdateTemplateSettings } from "../types";
 import { getApiClient } from "./http";
 
 export const printApi = {

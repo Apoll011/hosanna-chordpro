@@ -1,4 +1,4 @@
-import { Service } from "@hosanna/shared";
+import { Service } from "../types";
 import { getApiClient } from "./http";
 
 export const servicesApi = {

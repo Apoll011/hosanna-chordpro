@@ -1,4 +1,4 @@
-import { ServerSettings } from "@hosanna/shared";
+import { ServerSettings } from "../types";
 import { getApiClient } from "./http";
 
 export const settingsApi = {

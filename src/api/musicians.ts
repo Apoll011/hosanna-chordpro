@@ -1,5 +1,4 @@
-import { MusicianToken } from "@hosanna/shared";
-import { CreateMusicianTokenParams } from "../types";
+import { CreateMusicianTokenParams, MusicianToken } from "../types";
 import { getApiClient } from "./http";
 
 export const musiciansApi = {

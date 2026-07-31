@@ -1,10 +1,11 @@
 import {
+  LoginParams,
+  LoginResponse,
   RegisterTenantParams,
   RegisterUserParams,
   Tenant,
   User,
-} from "@hosanna/shared";
-import { LoginParams, LoginResponse } from "../types";
+} from "../types";
 import { getApiClient } from "./http";
 
 export const authApi = {
