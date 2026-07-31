@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import AceEditor from "react-ace";
-import type { IAceEditor } from "react-ace/lib/types";
 
 import ace from "ace-builds";
 import "ace-builds/src-noconflict/ext-language_tools";
@@ -29,9 +28,9 @@ if (!(window as any)._chordproCompleterRegistered) {
   const chordCompleter = {
     getCompletions: (
       editor: ace.Ace.Editor,
-      session: any,
-      pos: any,
-      prefix: string,
+      _session: any,
+      _pos: any,
+      _prefix: string,
       callback: any,
     ) => {
       const text = editor.getValue();
@@ -60,16 +59,16 @@ export default function Editor({
   readOnly = false,
 }: EditorProps) {
   const { settings } = useEditorSettings();
-  const editorRef = useRef<IAceEditor | null>(null);
+  const editorRef = useRef<ace.Ace.Editor | null>(null);
 
-  const handleLoad = (editor: IAceEditor) => {
+  const handleLoad = (editor: ace.Ace.Editor) => {
     editorRef.current = editor;
 
     // Add custom save command
     editor.commands.addCommand({
       name: "save",
       bindKey: { win: "Ctrl-S", mac: "Cmd-S" },
-      exec: (ed) => onSave?.(ed.getValue()),
+      exec: (ed: ace.Ace.Editor) => onSave?.(ed.getValue()),
     });
   };
 

@@ -4,7 +4,7 @@ export function registerChordproSnippets(): void {
   (ace as any).define(
     "ace/snippets/chordpro",
     ["require", "exports", "module"],
-    (require: any, exports: any) => {
+    (_: any, exports: any) => {
       exports.snippetText = [
         // album tag
         "snippet album",

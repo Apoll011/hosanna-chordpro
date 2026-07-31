@@ -210,11 +210,7 @@ export function registerChordproMode(): void {
           return map[name.toLowerCase()] || name.toLowerCase();
         };
 
-        this.getFoldWidgetRange = function (
-          session: any,
-          foldStyle: any,
-          row: number,
-        ) {
+        this.getFoldWidgetRange = function (session: any, _: any, row: number) {
           const line = session.getLine(row);
           const match = line.match(this.foldingStartMarker);
 
