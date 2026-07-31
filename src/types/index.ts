@@ -5,6 +5,23 @@ export interface User {
   role: "admin" | "leader" | "musician";
 }
 
+export interface LoginParams {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface CreateMusicianTokenParams {
+  name: string;
+  expiresAt?: string;
+  allowedServices?: string[];
+}
+
 export interface Tenant {
   name: string;
   slug: string;

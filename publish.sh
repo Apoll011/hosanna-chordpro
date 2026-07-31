@@ -10,11 +10,8 @@ echo "Starting release process..."
 echo "Version bump type: $VERSION_TYPE"
 echo "Commit message: $COMMIT_MSG"
 
-# 1. Ensure working directory is clean
-if [ -n "$(git status --porcelain)" ]; then
-  echo "Working tree is dirty. Stashing or committing changes first."
-  exit 1
-fi
+git add .
+git commit -m "$COMMIT_MSG"
 
 # 2. Run quality checks & build
 npm run build

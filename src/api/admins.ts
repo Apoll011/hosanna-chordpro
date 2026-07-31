@@ -1,4 +1,4 @@
-import { AdminUser, CreateAdminParams } from "../types";
+import { AdminUser, CreateAdminParams } from "@hosanna/shared";
 import { getApiClient } from "./http";
 
 export const adminsApi = {

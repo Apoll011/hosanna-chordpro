@@ -1,4 +1,4 @@
-import { SyncStatusResponse } from "../types";
+import { SyncStatusResponse } from "@hosanna/shared";
 import { getApiClient } from "./http";
 
 export const syncApi = {

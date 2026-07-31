@@ -1,4 +1,4 @@
-import { Folder, FoldersResponse } from "../types";
+import { Folder, FoldersResponse } from "@hosanna/shared";
 import { getApiClient } from "./http";
 
 export const foldersApi = {

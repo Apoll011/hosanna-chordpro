@@ -1,11 +1,6 @@
-import { MusicianToken } from "../types";
+import { MusicianToken } from "@hosanna/shared";
+import { CreateMusicianTokenParams } from "../types";
 import { getApiClient } from "./http";
-
-export interface CreateMusicianTokenParams {
-  name: string;
-  expiresAt?: string;
-  allowedServices?: string[];
-}
 
 export const musiciansApi = {
   getTokens: async (): Promise<MusicianToken[]> => {

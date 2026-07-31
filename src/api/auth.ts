@@ -3,19 +3,8 @@ import {
   RegisterUserParams,
   Tenant,
   User,
-} from "../types";
+} from "@hosanna/shared";
 import { getApiClient } from "./http";
-
-export interface LoginParams {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-}
 
 export const authApi = {
   login: async (credentials: LoginParams): Promise<LoginResponse> => {

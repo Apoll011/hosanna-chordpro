@@ -1,4 +1,4 @@
-import { GetSongsParams, Song, SongsResponse } from "../types";
+import { GetSongsParams, Song, SongsResponse } from "@hosanna/shared";
 import { getApiClient } from "./http";
 
 export const songsApi = {
