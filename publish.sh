@@ -20,6 +20,6 @@ npm run build
 npm version "$VERSION_TYPE" -m "$COMMIT_MSG - v%s"
 
 # 4. Push commit and tags to remote
-git push origin main --follow-tags
+git push --follow-tags
 
 echo "Successfully bumped version and pushed to origin!"
