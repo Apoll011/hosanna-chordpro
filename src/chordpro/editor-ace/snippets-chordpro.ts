@@ -10,6 +10,15 @@ export function registerChordproSnippets(): void {
         "snippet album",
         "	{album: ${1:value}}",
 
+        "snippet youtube",
+        "   {youtube: \${1:url}}",
+
+        "snippet number",
+        "   {song_number: \${1:url}}",
+
+        "snippet cc",
+        "   {chorus}",
+
         // arranger tag
         "snippet arranger",
         "	{arranger: ${1:value}}",
@@ -152,17 +161,6 @@ export function registerChordproSnippets(): void {
         "	{start_of_chorus}",
         "	${6:lyrics}",
         "	{end_of_chorus}",
-
-        "snippet yt",
-        "   {youtube: \${1:url}}",
-        "snippet youtube",
-        "   {youtube: \${1:url}}",
-
-        "snippet number",
-        "   {song_number: \${1:url}}",
-
-        "snippet cc",
-        "   {chorus}",
       ].join("\n");
       exports.scope = "chordpro";
     },
