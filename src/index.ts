@@ -5,6 +5,7 @@ export {
   convertToChordProDetailed,
   slugifyTitle,
   toChordPro,
+  type ConversionResult,
 } from "./chordpro/txt-to-chordpro";
 export * from "./components";
 export * from "./types";
