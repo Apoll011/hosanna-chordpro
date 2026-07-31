@@ -86,7 +86,7 @@ export function registerChordproSnippets(): void {
         "snippet eoc",
         "	{end_of_chorus}",
         "snippet chorus",
-        "	{start_of_chorus: ${1:Chorus}}",
+        "	{start_of_chorus: ${1:Refrão}}",
         "	${2:lyrics}",
         "	{end_of_chorus}",
 
@@ -96,7 +96,7 @@ export function registerChordproSnippets(): void {
         "snippet eov",
         "	{end_of_verse}",
         "snippet verse",
-        "	{start_of_verse: ${1:Verse} ${2:1}}",
+        "	{start_of_verse: ${1:Verso} ${2:1}}",
         "	${3:lyrics}",
         "	{end_of_verse}",
 
@@ -106,7 +106,7 @@ export function registerChordproSnippets(): void {
         "snippet eob",
         "	{end_of_bridge}",
         "snippet bridge",
-        "	{start_of_bridge: ${1:Bridge}}",
+        "	{start_of_bridge: ${1:Ponte}}",
         "	${2:lyrics}",
         "	{end_of_bridge}",
 
@@ -157,6 +157,9 @@ export function registerChordproSnippets(): void {
         "   {youtube: \${1:url}}",
         "snippet youtube",
         "   {youtube: \${1:url}}",
+
+        "snippet number",
+        "   {song_number: \${1:url}}",
       ].join("\n");
       exports.scope = "chordpro";
     },

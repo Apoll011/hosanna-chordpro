@@ -97,7 +97,7 @@ export function registerChordproMode(): void {
               ],
               regex:
                 rStart +
-                "(title|t|subtitle|st|artist|a|composer|lyricist|copyright|album|year|key|k|time|tempo|duration|capo|meta|c|comment|chord|define|x_[a-zA-Z0-9_]+)" +
+                "(title|t|subtitle|st|artist|a|composer|lyricist|copyright|album|year|key|k|time|tempo|duration|capo|meta|c|comment|chord|define|x_[a-zA-Z0-9_]+)|song_number" +
                 rSep +
                 "(.*?)" +
                 rEnd,
@@ -108,7 +108,9 @@ export function registerChordproMode(): void {
             {
               token: ["punctuation.tag", "keyword.operator", "punctuation.tag"],
               regex:
-                rStart + "(column_break|cb|new_page|np|new_song|ns)" + rEnd,
+                rStart +
+                "(column_break|cb|new_page|np|new_song|ns|chorus)" +
+                rEnd,
               caseInsensitive: true,
             },
 
