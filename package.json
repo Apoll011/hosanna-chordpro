@@ -1,8 +1,20 @@
 {
-  "name": "hosanna-shared",
-  "version": "1.2.1",
-  "description": "",
-  "main": "index.js",
+  "name": "@hosanna/shared",
+  "version": "1.2.2",
+  "description": "Shared logic between Hosanna Dashboard and mobile app",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "dev": "tsup src/index.ts --watch --format esm,cjs --dts",
@@ -15,7 +27,8 @@
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "typescript": "^7.0.2"
+    "typescript": "^5.9.2",
+    "tsup": "^8.5.1"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -24,8 +37,8 @@
   "dependencies": {
     "ace-builds": "^1.44.0",
     "lucide-react": "^1.28.0",
-    "react": "^19.2.8",
+    "react": "^19.0.0",
     "react-ace": "^15.0.0",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.0.0"
   }
 }
