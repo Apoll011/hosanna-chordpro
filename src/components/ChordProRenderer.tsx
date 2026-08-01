@@ -756,7 +756,7 @@ const ChordSectionRenderer = React.memo(
     transpose = 0,
     onChordClick,
   }: {
-    line: LineAST;
+    line: LineAST; // Replace with your actual types
     showChords: boolean;
     transpose?: number;
     onChordClick?: (chord: string) => void;
@@ -769,9 +769,10 @@ const ChordSectionRenderer = React.memo(
     );
 
     return (
-      <div className="my-2 p-3 w-full flex flex-wrap items-center gap-y-3 gap-x-2 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm leading-none">
+      // MINIMALIST CONTAINER: Clean, subtle borders, using flex-wrap and gap for spacing
+      <div className="my-2 py-3 px-2 w-full flex flex-wrap items-center gap-y-4 gap-x-1 bg-slate-50/50 dark:bg-slate-900/20 rounded-lg border border-slate-200/70 dark:border-slate-800/70">
         {line.startBarline && (
-          <div className="flex items-center justify-center shrink-0">
+          <div className="flex items-center justify-center shrink-0 px-1">
             {renderBarline(line.startBarline)}
           </div>
         )}
@@ -786,18 +787,24 @@ const ChordSectionRenderer = React.memo(
                 return (
                   <span
                     key={cIdx}
-                    className="relative group flex items-center justify-center font-mono font-black text-sky-600 dark:text-sky-400 text-[16px] cursor-pointer rounded-lg py-2 px-3 transition-all bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700/60 hover:border-sky-300 dark:hover:border-sky-600 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex-shrink-0"
+                    // SLEEK CHORDS: Transparent background, relying on typography and clean hover states
+                    className="flex items-center justify-center cursor-pointer rounded-md transition-colors hover:bg-slate-200/50 dark:hover:bg-slate-700/40 py-1.5 px-2"
                     style={{
+                      // Allows the chord to stretch nicely to fill empty space when wrapped
                       flexGrow: timing,
-                      minWidth: `${Math.max(3.5, timing * 3)}rem`,
+                      // Ensures it wraps instead of squishing, maintaining a clean rhythm
+                      minWidth: `${Math.max(3.5, timing * 2.5)}rem`,
                     }}
                     onClick={() => onChordClick?.(transposed)}
                     title={timing !== 1 ? `Duração: ${timing}x` : undefined}
                   >
-                    {transposed}
+                    <span className="font-black text-[#0284c7] dark:text-sky-400 font-mono select-none text-[15px] tracking-wide">
+                      {transposed}
+                    </span>
 
+                    {/* MINIMALIST TIMING: Clean, small, and tucked next to the chord */}
                     {hasTiming && timing !== 1 && (
-                      <span className="ml-1.5 px-1 py-0.5 rounded text-[10px] font-bold bg-sky-50 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300">
+                      <span className="ml-1 mt-0.5 text-[10px] font-bold text-indigo-400 dark:text-indigo-500 opacity-80">
                         {timing}×
                       </span>
                     )}
@@ -806,7 +813,7 @@ const ChordSectionRenderer = React.memo(
               })}
 
               {measure.endBarline && (
-                <div className="flex items-center justify-center shrink-0">
+                <div className="flex items-center justify-center shrink-0 px-1">
                   {renderBarline(measure.endBarline)}
                 </div>
               )}
@@ -820,11 +827,11 @@ const ChordSectionRenderer = React.memo(
 
 function renderBarline(barline: string): React.ReactNode {
   const wrapperStyle =
-    "flex items-center justify-center flex-shrink-0 mx-1 select-none";
+    "flex items-center justify-center flex-shrink-0 select-none";
   const repeatStyle =
-    "text-indigo-500 dark:text-indigo-400 text-2xl leading-none drop-shadow-sm";
+    "text-indigo-400 dark:text-indigo-500 text-[18px] leading-none";
   const normalStyle =
-    "text-slate-300 dark:text-slate-600 text-xl font-black leading-none";
+    "text-slate-300 dark:text-slate-600 font-black text-[16px] leading-none";
 
   switch (barline) {
     case "|:":
@@ -870,15 +877,13 @@ function renderBarline(barline: string): React.ReactNode {
     case "|":
       return (
         <span className={wrapperStyle} aria-label="Barline">
-          <span className="text-slate-300 dark:text-slate-600 font-bold text-xl leading-none">
-            |
-          </span>
+          <span className={normalStyle}>|</span>
         </span>
       );
     default:
       return (
         <span
-          className={`${wrapperStyle} text-slate-400 dark:text-slate-500 text-sm tracking-widest`}
+          className={`${wrapperStyle} text-slate-400 dark:text-slate-500 text-xs font-bold tracking-widest`}
         >
           {barline}
         </span>
