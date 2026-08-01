@@ -1,6 +1,8 @@
 export interface SegmentAST {
   chord: string;
   text: string;
+  /** Relative duration weight. Default is 1. Use @Nx syntax in chord brackets e.g. [Em@2x]. */
+  timing?: number;
 }
 
 export interface MeasureAST {
@@ -48,28 +50,43 @@ export interface SongAST {
 // ChordPro parsing
 // ---------------------------------------------------------------------------
 
+/** Regex to extract timing annotation from a chord string: chord@Nx */
+const TIMING_REGEX = /^(.+?)@([0-9]*\.?[0-9]+)x$/;
+
+function parseChordTiming(rawChord: string): { chord: string; timing?: number } {
+  const match = rawChord.match(TIMING_REGEX);
+  if (match) {
+    return { chord: match[1], timing: parseFloat(match[2]) };
+  }
+  return { chord: rawChord };
+}
+
 export function parseLineSegments(lineText: string): SegmentAST[] {
   const segments: SegmentAST[] = [];
   const regex = /\[([^\]]+)\]/g;
   let match;
   let lastIndex = 0;
   let currentChord = '';
+  let currentTiming: number | undefined;
 
   while ((match = regex.exec(lineText)) !== null) {
-    const chord = match[1];
+    const rawChord = match[1];
+    const { chord, timing } = parseChordTiming(rawChord);
     const textBefore = lineText.slice(lastIndex, match.index);
 
     if (lastIndex === 0 && textBefore === '') {
       currentChord = chord;
+      currentTiming = timing;
     } else {
-      segments.push({ chord: currentChord, text: textBefore });
+      segments.push({ chord: currentChord, text: textBefore, timing: currentTiming });
       currentChord = chord;
+      currentTiming = timing;
     }
     lastIndex = regex.lastIndex;
   }
 
   const remainingText = lineText.slice(lastIndex);
-  segments.push({ chord: currentChord, text: remainingText });
+  segments.push({ chord: currentChord, text: remainingText, timing: currentTiming });
 
   return segments;
 }
@@ -273,7 +290,7 @@ export function parseChordPro(content: string): SongAST {
       for (let i = 0; i < parsedSegments.length; i++) {
         const seg = parsedSegments[i];
         if (seg.chord) {
-          currentChords.push({ chord: seg.chord, text: '' });
+          currentChords.push({ chord: seg.chord, text: '', timing: seg.timing });
           hasSeenChord = true;
         }
 

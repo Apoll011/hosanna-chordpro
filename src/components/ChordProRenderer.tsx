@@ -24,6 +24,7 @@ import { chordDictionary } from "../chordpro/chordDictionary";
 import { LineAST, parseChordPro } from "../chordpro/parser";
 import { transposeChord } from "../chordpro/transpose";
 import { ChordRoll, GuitarDiagram, PianoDiagram } from "./ChordRoll";
+import { ChordSectionRenderer } from "./ChordSectionRenderer";
 
 // ---------------------------------------------------------------------------
 // Helper: extract YouTube video ID from a URL or raw ID string
@@ -45,7 +46,7 @@ interface ChordProPreviewProps {
 
   /** Semitones to transpose. Defaults to 0. */
   transposeVal?: number;
-  /** Callback to change transpose value. Required for the "Repor Tom" button. */
+  /** Callback to change transpose value. Required for the "Repor Tom" button. just the function to change transpose like if its a state the setTransposeVal */
   onTransposeChange?: (val: number) => void;
 
   /** Font size in px for the body content. */
@@ -63,7 +64,7 @@ interface ChordProPreviewProps {
   // --- YouTube mini player (optional controlled mode) ------------------------
   /** Whether the YouTube mini player bar is visible (controlled). */
   showYoutubePlayer?: boolean;
-  /** Callback when the player visibility changes. */
+  /** Callback when the player visibility changes. Not used*/
   onShowYoutubePlayerChange?: (show: boolean) => void;
 }
 
@@ -135,7 +136,9 @@ const ChordProRenderer = React.memo(
 
     // ── Chord Dictionary Modal state ──────────────────────────────────
     const [selectedChord, setSelectedChord] = useState<string | null>(null);
-    const [modalInstrument, setModalInstrument] = useState<"guitar" | "piano">(instrument);
+    const [modalInstrument, setModalInstrument] = useState<"guitar" | "piano">(
+      instrument,
+    );
 
     const chordFingering = useMemo(() => {
       if (!selectedChord) return null;
@@ -584,28 +587,22 @@ const ChordProRenderer = React.memo(
               {/* Fingering render */}
               <div className="py-4 flex flex-col items-center justify-center min-h-[140px] border border-m3-border/30 dark:border-m3-dark-border/30 rounded-2xl bg-m3-sidebar/30 dark:bg-m3-dark-sidebar/10">
                 {chordFingering ? (
-                  modalInstrument === "guitar" &&
-                  chordFingering.guitar ? (
+                  modalInstrument === "guitar" && chordFingering.guitar ? (
                     <GuitarDiagram
                       frets={chordFingering.guitar.frets}
                       fingers={chordFingering.guitar.fingers}
                       barre={chordFingering.guitar.barre}
                     />
-                  ) : modalInstrument === "piano" &&
-                    chordFingering.piano ? (
+                  ) : modalInstrument === "piano" && chordFingering.piano ? (
                     <PianoDiagram
-                      highlightKeys={
-                        chordFingering.piano.highlightKeys
-                      }
+                      highlightKeys={chordFingering.piano.highlightKeys}
                     />
                   ) : (
                     <div className="text-center p-4">
                       <HelpCircle className="w-8 h-8 mx-auto text-amber-500 opacity-80 mb-2" />
                       <p className="text-xs text-m3-secondary dark:text-m3-dark-secondary font-medium">
                         O diagrama para{" "}
-                        {modalInstrument === "guitar"
-                          ? "Guitarra"
-                          : "Piano"}{" "}
+                        {modalInstrument === "guitar" ? "Guitarra" : "Piano"}{" "}
                         não pôde ser calculado.
                       </p>
                     </div>
@@ -614,13 +611,11 @@ const ChordProRenderer = React.memo(
                   <div className="text-center p-6 space-y-2">
                     <HelpCircle className="w-8 h-8 mx-auto text-amber-500 opacity-80" />
                     <p className="text-xs text-m3-text dark:text-m3-dark-text font-bold">
-                      Acorde &quot;{selectedChord}&quot; não
-                      registado
+                      Acorde &quot;{selectedChord}&quot; não registado
                     </p>
                     <p className="text-[10px] text-m3-secondary dark:text-m3-dark-secondary max-w-[200px] leading-normal">
-                      Este acorde não se encontra no nosso
-                      dicionário estrito, mas pode tocá-lo com
-                      as notas de acompanhamento habituais.
+                      Este acorde não se encontra no nosso dicionário estrito,
+                      mas pode tocá-lo com as notas de acompanhamento habituais.
                     </p>
                   </div>
                 )}
@@ -741,70 +736,6 @@ const LyricsRenderer = React.memo(
             </div>
           );
         })}
-      </div>
-    );
-  },
-);
-
-const ChordSectionRenderer = React.memo(
-  ({
-    line,
-    showChords,
-    transpose = 0,
-    onChordClick,
-  }: {
-    line: LineAST;
-    showChords: boolean;
-    transpose?: number;
-    onChordClick?: (chord: string) => void;
-  }) => {
-    if (!showChords) return null;
-
-    const measures = line.measures || [];
-
-    return (
-      <div className="flex items-stretch my-2 bg-slate-50 dark:bg-slate-900/30 rounded border border-slate-200 dark:border-slate-800 overflow-hidden w-full max-w-max">
-        {line.startBarline && (
-          <div className="flex items-center px-2 bg-slate-100/50 dark:bg-slate-800/50 border-r border-slate-200 dark:border-slate-800">
-            <span className="text-slate-400 dark:text-slate-500 font-bold select-none text-sm tracking-widest">
-              {line.startBarline}
-            </span>
-          </div>
-        )}
-
-        <div className="flex flex-1 min-w-0">
-          {measures.map((measure, mIdx) => {
-            return (
-              <React.Fragment key={mIdx}>
-                <div className="flex-1 flex items-center justify-around px-3 py-2 min-w-12">
-                  {measure.chords.map((chordSeg, cIdx) => {
-                    const transposed = transposeChord(
-                      chordSeg.chord,
-                      transpose,
-                    );
-                    return (
-                      <span
-                        key={cIdx}
-                        className="font-black text-[#0284c7] font-mono select-none text-[15px] cursor-pointer hover:opacity-80"
-                        onClick={() => onChordClick?.(transposed)}
-                      >
-                        {transposed}
-                      </span>
-                    );
-                  })}
-                </div>
-
-                {measure.endBarline && (
-                  <div className="flex items-center px-1.5 bg-slate-100/50 dark:bg-slate-800/50 border-l border-slate-200 dark:border-slate-800">
-                    <span className="text-slate-400 dark:text-slate-500 font-bold select-none text-sm tracking-widest">
-                      {measure.endBarline}
-                    </span>
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
       </div>
     );
   },

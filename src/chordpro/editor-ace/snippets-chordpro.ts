@@ -11,13 +11,13 @@ export function registerChordproSnippets(): void {
         "	{album: ${1:value}}",
 
         "snippet youtube",
-        "   {youtube: \${1:url}}",
+        "	{youtube: ${1:url}}",
 
         "snippet number",
-        "   {song_number: \${1:url}}",
+        "	{song_number: ${1:number}}",
 
         "snippet cc",
-        "   {chorus}",
+        "	{chorus}",
 
         // arranger tag
         "snippet arranger",
@@ -149,17 +149,26 @@ export function registerChordproSnippets(): void {
         // that's all folks!
         // chord usage
         "snippet [",
-        "	[${1:Am}]",
+        "\t[${1:Am}]",
+
+        // chord section / grid notation
+        "snippet ||",
+        "\t||[${1:Am}]|[${2:C}]|[${3:G}]|[${4:F}]||",
+
+        "snippet grid",
+        "\t{start_of_grid}",
+        "\t||[${1:Em}]|[${2:C}]|[${3:D}]||",
+        "\t{end_of_grid}",
 
         "snippet !",
-        "	{title: ${1:value}}",
-        "	{artist: ${2:value}}",
-        "	{duration: ${3:4:00}}",
-        "	{key: ${4:C}}",
-        "	",
-        "	${5:lyrics}",
-        "	{start_of_chorus}",
-        "	${6:lyrics}",
+        "\t{title: ${1:value}}",
+        "\t{artist: ${2:value}}",
+        "\t{duration: ${3:4:00}}",
+        "\t{key: ${4:C}}",
+        "\t",
+        "\t${5:lyrics}",
+        "\t{start_of_chorus}",
+        "\t${6:lyrics}",
         "	{end_of_chorus}",
       ].join("\n");
       exports.scope = "chordpro";
