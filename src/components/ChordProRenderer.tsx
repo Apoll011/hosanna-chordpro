@@ -769,55 +769,54 @@ const ChordSectionRenderer = React.memo(
     );
 
     return (
-      // MINIMALIST CONTAINER: Clean, subtle borders, using flex-wrap and gap for spacing
-      <div className="my-2 py-3 px-2 w-full flex flex-wrap items-center gap-y-4 gap-x-1 bg-slate-50/50 dark:bg-slate-900/20 rounded-lg border border-slate-200/70 dark:border-slate-800/70">
+      <div className="my-1.5 p-1.5 w-full flex flex-wrap items-stretch bg-slate-50/40 dark:bg-slate-900/10 rounded-md border border-slate-200/50 dark:border-slate-800/50">
         {line.startBarline && (
-          <div className="flex items-center justify-center shrink-0 px-1">
+          <div className="flex items-center justify-center shrink-0 pr-1">
             {renderBarline(line.startBarline)}
           </div>
         )}
 
         {measures.map((measure, mIdx) => {
           return (
-            <React.Fragment key={mIdx}>
-              {measure.chords.map((chordSeg, cIdx) => {
-                const transposed = transposeChord(chordSeg.chord, transpose);
-                const timing = chordSeg.timing ?? 1;
+            <div
+              key={mIdx}
+              className="flex-1 flex min-w-[120px] items-stretch border-r border-transparent last:border-none"
+            >
+              <div className="flex-1 flex items-center justify-evenly gap-1 px-1">
+                {measure.chords.map((chordSeg, cIdx) => {
+                  const transposed = transposeChord(chordSeg.chord, transpose);
+                  const timing = chordSeg.timing ?? 1;
 
-                return (
-                  <span
-                    key={cIdx}
-                    // SLEEK CHORDS: Transparent background, relying on typography and clean hover states
-                    className="flex items-center justify-center cursor-pointer rounded-md transition-colors hover:bg-slate-200/50 dark:hover:bg-slate-700/40 py-1.5 px-2"
-                    style={{
-                      // Allows the chord to stretch nicely to fill empty space when wrapped
-                      flexGrow: timing,
-                      // Ensures it wraps instead of squishing, maintaining a clean rhythm
-                      minWidth: `${Math.max(3.5, timing * 2.5)}rem`,
-                    }}
-                    onClick={() => onChordClick?.(transposed)}
-                    title={timing !== 1 ? `Duração: ${timing}x` : undefined}
-                  >
-                    <span className="font-black text-[#0284c7] dark:text-sky-400 font-mono select-none text-[15px] tracking-wide">
-                      {transposed}
-                    </span>
-
-                    {/* MINIMALIST TIMING: Clean, small, and tucked next to the chord */}
-                    {hasTiming && timing !== 1 && (
-                      <span className="ml-1 mt-0.5 text-[10px] font-bold text-indigo-400 dark:text-indigo-500 opacity-80">
-                        {timing}×
+                  return (
+                    <span
+                      key={cIdx}
+                      // SLEEK CHORDS: Flat design, subtle background on hover, no harsh lines
+                      className="flex-1 flex items-center justify-center cursor-pointer rounded transition-colors hover:bg-slate-200/60 dark:hover:bg-slate-700/40 py-1.5 px-1 min-w-max"
+                      style={{ flexGrow: timing }}
+                      onClick={() => onChordClick?.(transposed)}
+                      title={timing !== 1 ? `Duração: ${timing}x` : undefined}
+                    >
+                      <span className="font-bold text-[#0284c7] dark:text-sky-400 font-mono select-none text-[15px] tracking-wide">
+                        {transposed}
                       </span>
-                    )}
-                  </span>
-                );
-              })}
+
+                      {/* MINIMALIST TIMING: Small, clean, tucked beside the chord */}
+                      {hasTiming && timing !== 1 && (
+                        <span className="ml-0.5 mt-0.5 text-[10px] font-semibold text-indigo-400 dark:text-indigo-500 opacity-80">
+                          {timing}×
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
 
               {measure.endBarline && (
                 <div className="flex items-center justify-center shrink-0 px-1">
                   {renderBarline(measure.endBarline)}
                 </div>
               )}
-            </React.Fragment>
+            </div>
           );
         })}
       </div>
