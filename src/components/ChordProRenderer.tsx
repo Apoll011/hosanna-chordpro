@@ -75,6 +75,8 @@ interface ChordProPreviewProps {
   showYoutubePlayer?: boolean;
   /** Callback when the player visibility changes. Not used*/
   onShowYoutubePlayerChange?: (show: boolean) => void;
+
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,9 +94,8 @@ const ChordProRenderer = React.memo(
     fileName,
     showYoutubePlayer: showYoutubePlayerProp,
     onShowYoutubePlayerChange,
+    scrollContainerRef,
   }: ChordProPreviewProps) => {
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-
     // ── YouTube internal state ──────────────────────────────────────────
     const [ytPlayerRef, setYtPlayerRef] = useState<YouTubePlayer | null>(null);
     const [isPlayingYoutube, setIsPlayingYoutube] = useState(false);
