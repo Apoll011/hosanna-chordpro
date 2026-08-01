@@ -748,6 +748,7 @@ const LyricsRenderer = React.memo(
     );
   },
 );
+
 const ChordSectionRenderer = React.memo(
   ({
     line,
@@ -755,7 +756,7 @@ const ChordSectionRenderer = React.memo(
     transpose = 0,
     onChordClick,
   }: {
-    line: LineAST;
+    line: LineAST; // Replace with your actual types (assumed from your code)
     showChords: boolean;
     transpose?: number;
     onChordClick?: (chord: string) => void;
@@ -768,56 +769,67 @@ const ChordSectionRenderer = React.memo(
     );
 
     return (
-      <div className="flex items-stretch my-2 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden w-full max-w-max">
-        {line.startBarline && (
-          <div className="flex items-center px-2 bg-slate-100/50 dark:bg-slate-800/50 border-r border-slate-200 dark:border-slate-800">
-            <span className="text-slate-400 dark:text-slate-500 font-bold select-none text-sm tracking-widest">
+      // FIX: Changed from `overflow-hidden max-w-max` to `w-full overflow-x-auto`.
+      // This allows the container to handle many notes by letting the user scroll horizontally.
+      <div className="my-2 bg-slate-50 dark:bg-slate-900/30 rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto overflow-y-hidden w-full">
+        {/* FIX: `w-max min-w-full` forces the inner div to stretch to hold all notes, preventing squishing */}
+        <div className="flex items-stretch w-max min-w-full">
+          {line.startBarline && (
+            <div className="flex items-center px-2.5 bg-slate-100/60 dark:bg-slate-800/60 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 shadow-[inset_-2px_0_4px_rgba(0,0,0,0.02)]">
               {renderBarline(line.startBarline)}
-            </span>
-          </div>
-        )}
+            </div>
+          )}
 
-        <div className="flex flex-1 min-w-0">
-          {measures.map((measure, mIdx) => {
-            return (
-              <React.Fragment key={mIdx}>
-                <div className="flex-1 flex items-center px-3 py-2 min-w-12 gap-1">
-                  {measure.chords.map((chordSeg, cIdx) => {
-                    const transposed = transposeChord(
-                      chordSeg.chord,
-                      transpose,
-                    );
-                    const timing = chordSeg.timing ?? 1;
+          <div className="flex flex-1">
+            {measures.map((measure, mIdx) => {
+              return (
+                <React.Fragment key={mIdx}>
+                  {/* FIX: Removed `min-w-0` and added `flex-shrink-0 min-w-max flex-nowrap` */}
+                  <div className="flex-1 flex flex-nowrap items-center px-4 py-2.5 gap-2 min-w-max flex-shrink-0">
+                    {measure.chords.map((chordSeg, cIdx) => {
+                      const transposed = transposeChord(
+                        chordSeg.chord,
+                        transpose,
+                      );
+                      const timing = chordSeg.timing ?? 1;
 
-                    return (
-                      <span
-                        key={cIdx}
-                        className="font-black text-[#0284c7] font-mono select-none text-[15px] cursor-pointer hover:opacity-80 flex items-center justify-center gap-1 transition-all"
-                        style={{ flexGrow: timing, flexBasis: 0 }}
-                        onClick={() => onChordClick?.(transposed)}
-                        title={timing !== 1 ? `Duração: ${timing}x` : undefined}
-                      >
-                        {transposed}
-                        {hasTiming && timing !== 1 && (
-                          <span className="text-[10px] font-bold text-indigo-400 dark:text-indigo-500 opacity-70">
-                            {timing}×
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
+                      return (
+                        <span
+                          key={cIdx}
+                          // STYLING: Added background hover effect, scale animations, padding, and better coloring.
+                          className="relative font-black text-sky-600 dark:text-sky-400 font-mono select-none text-[16px] cursor-pointer rounded-md px-2 py-1 flex items-center justify-center flex-shrink-0 transition-all hover:bg-sky-100 dark:hover:bg-sky-900/40 hover:scale-105 active:scale-95"
+                          // FIX: Used calculated minWidth instead of flexBasis:0 so the notes boldly hold their shape.
+                          style={{
+                            flexGrow: timing,
+                            minWidth: `${timing * 3.5}rem`,
+                          }}
+                          onClick={() => onChordClick?.(transposed)}
+                          title={
+                            timing !== 1 ? `Duração: ${timing}x` : undefined
+                          }
+                        >
+                          {transposed}
 
-                {measure.endBarline && (
-                  <div className="flex items-center px-1.5 bg-slate-100/50 dark:bg-slate-800/50 border-l border-slate-200 dark:border-slate-800">
-                    <span className="text-slate-400 dark:text-slate-500 font-bold select-none text-sm tracking-widest">
-                      {renderBarline(measure.endBarline)}
-                    </span>
+                          {/* STYLING: Made the timing badge a superscript so it doesn't mess with alignment */}
+                          {hasTiming && timing !== 1 && (
+                            <sup className="ml-0.5 mt-1 text-[11px] font-bold text-indigo-500 dark:text-indigo-400">
+                              {timing}×
+                            </sup>
+                          )}
+                        </span>
+                      );
+                    })}
                   </div>
-                )}
-              </React.Fragment>
-            );
-          })}
+
+                  {measure.endBarline && (
+                    <div className="flex items-center px-2.5 bg-slate-100/60 dark:bg-slate-800/60 border-l border-slate-200 dark:border-slate-800 flex-shrink-0">
+                      {renderBarline(measure.endBarline)}
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -825,34 +837,74 @@ const ChordSectionRenderer = React.memo(
 );
 
 /**
- * Renders barline symbols with visual distinction:
- * - `||` → double bar (thicker)
- * - `|:` → repeat start
- * - `:|` → repeat end
- * - `|`  → normal bar
+ * Renders barline symbols with visual distinction.
+ * Improved to use standard sizing, flex-shrink-0, and semantic aria-labels.
  */
 function renderBarline(barline: string): React.ReactNode {
+  const wrapperStyle =
+    "flex items-center justify-center flex-shrink-0 select-none";
+  const repeatStyle =
+    "text-indigo-500 dark:text-indigo-400 text-xl leading-none drop-shadow-sm";
+  const normalStyle =
+    "text-slate-400 dark:text-slate-500 text-lg font-black leading-none";
+
   switch (barline) {
     case "|:":
       return (
-        <span className="flex items-center gap-0.5">
-          <span className="text-indigo-400 dark:text-indigo-500 text-xs">
-            𝄆
-          </span>
+        <span
+          className={wrapperStyle}
+          aria-label="Start repeat"
+          title="Start repeat"
+        >
+          <span className={repeatStyle}>𝄆</span>
         </span>
       );
     case ":|":
       return (
-        <span className="flex items-center gap-0.5">
-          <span className="text-indigo-400 dark:text-indigo-500 text-xs">
-            𝄇
-          </span>
+        <span
+          className={wrapperStyle}
+          aria-label="End repeat"
+          title="End repeat"
+        >
+          <span className={repeatStyle}>𝄇</span>
         </span>
       );
     case "||":
-      return <span className="font-black">‖</span>;
+      return (
+        <span
+          className={wrapperStyle}
+          aria-label="Double barline"
+          title="Double barline"
+        >
+          <span className={normalStyle}>‖</span>
+        </span>
+      );
+    case "|]":
+      return (
+        <span
+          className={wrapperStyle}
+          aria-label="End of piece"
+          title="End of piece"
+        >
+          <span className={normalStyle}>𝄂</span>
+        </span>
+      );
+    case "|":
+      return (
+        <span className={wrapperStyle} aria-label="Barline">
+          <span className="text-slate-300 dark:text-slate-600 font-bold text-lg leading-none">
+            |
+          </span>
+        </span>
+      );
     default:
-      return barline;
+      return (
+        <span
+          className={`${wrapperStyle} text-slate-400 dark:text-slate-500 text-sm tracking-widest`}
+        >
+          {barline}
+        </span>
+      );
   }
 }
 
