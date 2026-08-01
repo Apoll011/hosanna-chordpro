@@ -41,6 +41,29 @@ export interface Song {
   updatedAt: string;
 }
 
+export interface ParsedSong extends Song {
+  metadata: {
+    title?: string;
+    subtitle?: string;
+    artist?: string;
+    composer?: string;
+    copyright?: string;
+    album?: string;
+    key?: string;
+    originalKey?: string;
+    tempo?: string;
+    time?: string;
+    capo?: string;
+    songNumber?: string;
+    youtube?: string;
+    ccli?: string;
+    duration?: string;
+    [key: string]: string | undefined;
+  };
+  folder: string; // e.g. "Worship" or "" (root)
+  fileName: string; // e.g. "Digno_es_Tu.chopro"
+}
+
 export interface SongsResponse {
   songs: Song[];
   total: number;
@@ -80,6 +103,7 @@ export interface ServiceElement {
   songId?: string;
   notes?: string;
   passage?: string;
+  duration?: number;
 }
 
 export interface Service {

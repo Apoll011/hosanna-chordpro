@@ -36,6 +36,16 @@ function extractYoutubeId(urlOrId: string): string {
   return match?.[1] || urlOrId;
 }
 
+function getDuration(duration: string): string {
+  const seconds = Number(duration);
+
+  if (isNaN(seconds)) {
+    return "00:00";
+  } else {
+    return `${Math.trunc(seconds / 60)}:${seconds % 60}`;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -232,14 +242,12 @@ const ChordProRenderer = React.memo(
                 </div>
               </div>
 
-              {/* Informações Auxiliares (Copyright, YT, Duration) */}
-              {(metadata.copyright ||
-                metadata.youtube ||
-                metadata.duration) && (
+              {/* Informações Auxiliares (Copyright, Duration) */}
+              {(metadata.copyright || metadata.duration) && (
                 <div className="flex items-center gap-4 text-[10px] text-neutral-400 dark:text-neutral-500 mt-3 pt-3 border-t border-neutral-100 dark:border-slate-800/50">
                   {metadata.copyright && <span>© {metadata.copyright}</span>}
                   {metadata.duration && (
-                    <span>Duração: {metadata.duration}</span>
+                    <span>Duração: {getDuration(metadata.duration)}</span>
                   )}
                 </div>
               )}
