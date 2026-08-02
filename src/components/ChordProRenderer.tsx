@@ -800,7 +800,6 @@ const ChordSectionRenderer = React.memo(
                         {transposed}
                       </span>
 
-                      {/* MINIMALIST TIMING: Small, clean, tucked beside the chord */}
                       {hasTiming && timing !== 1 && (
                         <span className="ml-0.5 mt-0.5 text-[10px] font-semibold text-indigo-400 dark:text-indigo-500 opacity-80">
                           {timing}×
