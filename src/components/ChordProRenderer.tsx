@@ -55,8 +55,16 @@ interface ChordProPreviewProps {
 
   /** Semitones to transpose. Defaults to 0. */
   transposeVal?: number;
-  /** Callback to change transpose value. Required for the "Repor Tom" button. just the function to change transpose like if its a state the setTransposeVal */
+  /** Capo position on fretboard (0-11). Defaults to 0. */
+  capoVal?: number;
+
+  /** Callback to change transpose value. */
   onTransposeChange?: (val: number) => void;
+  /** Callback to change capo value. */
+  onCapoChange?: (val: number) => void;
+
+  /** Enable 2-column layout for song body. */
+  twoColumnLayout?: boolean;
 
   /** Font size in px for the body content. */
   fontSize?: number;
@@ -87,7 +95,10 @@ const ChordProRenderer = React.memo(
     content,
     showChords,
     transposeVal = 0,
+    capoVal = 0,
     onTransposeChange,
+    onCapoChange,
+    twoColumnLayout = false,
     fontSize,
     instrument = "guitar",
     showDiagrams = false,
@@ -121,6 +132,18 @@ const ChordProRenderer = React.memo(
     }, [content]);
 
     const { metadata } = parsedSong;
+
+    const isGuitar = instrument === "guitar";
+    const effectiveCapo = isGuitar ? capoVal : 0;
+    const effectiveTranspose = transposeVal - effectiveCapo;
+
+    const soundingKey = useMemo(() => {
+      return transposeChord(metadata.key || "C", transposeVal);
+    }, [metadata.key, transposeVal]);
+
+    const renderedKey = useMemo(() => {
+      return transposeChord(metadata.key || "C", effectiveTranspose);
+    }, [metadata.key, effectiveTranspose]);
 
     // Derive unique chords from the AST if the caller didn't provide them
     const resolvedUniqueChords = useMemo(() => {
@@ -161,7 +184,7 @@ const ChordProRenderer = React.memo(
     };
 
     return (
-      <div className="relative flex flex-col flex-1 overflow-hidden">
+      <div className="relative flex flex-col flex-1 overflow-hidden h-full">
         <div
           ref={scrollContainerRef}
           className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 bg-slate-50 dark:bg-slate-950 print-page select-text leading-relaxed no-scrollbar relative"
@@ -208,10 +231,20 @@ const ChordProRenderer = React.memo(
                       Nº {metadata.songNumber}
                     </span>
                   )}
-                  {metadata.key && (
+                  {(metadata.key || transposeVal !== 0) && (
                     <span className="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-lg border border-indigo-100 dark:border-indigo-950/50 flex items-center gap-1">
                       <Key className="w-3 h-3" />
-                      Tom: {metadata.key}
+                      Tom: {soundingKey}
+                    </span>
+                  )}
+                  {effectiveCapo > 0 && (
+                    <span className="text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-lg border border-amber-100 dark:border-amber-950/50">
+                      Capo: {effectiveCapo}ª casa
+                    </span>
+                  )}
+                  {effectiveCapo > 0 && (
+                    <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-950/50">
+                      Formato: {renderedKey}
                     </span>
                   )}
                   {metadata.originalKey && (
@@ -219,9 +252,9 @@ const ChordProRenderer = React.memo(
                       Tom Orig: {metadata.originalKey}
                     </span>
                   )}
-                  {metadata.capo && metadata.capo !== "0" && (
+                  {metadata.capo && metadata.capo !== "0" && effectiveCapo === 0 && (
                     <span className="text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-lg border border-amber-100 dark:border-amber-950/50">
-                      Capo: {metadata.capo}ª casa
+                      Capo Orig: {metadata.capo}ª casa
                     </span>
                   )}
                   {metadata.tempo && (
@@ -254,20 +287,35 @@ const ChordProRenderer = React.memo(
               )}
 
               {/* ───── Transposition Indicator Banner ───── */}
-              {transposeVal !== 0 && (
-                <div className="mt-4 bg-indigo-50 dark:bg-indigo-950/40 text-xs px-3 py-2 rounded-xl text-indigo-700 dark:text-indigo-300 flex items-center justify-between border border-indigo-100 dark:border-indigo-950/50">
-                  <span className="font-semibold">
-                    Transposto para:{" "}
-                    <span className="text-indigo-600 dark:text-indigo-400 font-bold bg-white dark:bg-zinc-900 px-2 py-0.5 rounded border ml-1 text-sm">
-                      {transposeChord(metadata.key || "C", transposeVal)}
+              {(transposeVal !== 0 || effectiveCapo !== 0) && (
+                <div className="mt-4 bg-indigo-50 dark:bg-indigo-950/40 text-xs px-3 py-2 rounded-xl text-indigo-700 dark:text-indigo-300 flex items-center justify-between border border-indigo-100 dark:border-indigo-950/50 flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold">
+                      Tom:{" "}
+                      <span className="text-indigo-600 dark:text-indigo-400 font-bold bg-white dark:bg-zinc-900 px-2 py-0.5 rounded border ml-0.5 text-xs">
+                        {soundingKey}
+                      </span>
                     </span>
-                  </span>
-                  {onTransposeChange && (
+                    {effectiveCapo > 0 && (
+                      <span className="font-semibold text-amber-700 dark:text-amber-300">
+                        • Capo:{" "}
+                        <span className="text-amber-700 dark:text-amber-300 font-bold bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-800 text-xs ml-0.5">
+                          {effectiveCapo}ª casa ({renderedKey})
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                  {(onTransposeChange || onCapoChange) && (
                     <button
-                      onClick={() => onTransposeChange(0)}
-                      className="text-[10px] font-bold hover:underline underline-offset-2 uppercase text-indigo-600 dark:text-indigo-400"
+                      type="button"
+                      onClick={() => {
+                        onTransposeChange?.(0);
+                        onCapoChange?.(0);
+                      }}
+                      className="text-[10px] font-bold hover:underline underline-offset-2 uppercase text-indigo-600 dark:text-indigo-400 cursor-pointer"
+                      aria-label="Repor tom e capo originais"
                     >
-                      Repor Tom
+                      Repor Tom / Capo
                     </button>
                   )}
                 </div>
@@ -278,6 +326,7 @@ const ChordProRenderer = React.memo(
             <ChordRoll
               uniqueChords={resolvedUniqueChords}
               transposeVal={transposeVal}
+              capoVal={effectiveCapo}
               onChordClick={handleChordClick}
               instrument={instrument}
               showDiagrams={showDiagrams}
@@ -286,7 +335,11 @@ const ChordProRenderer = React.memo(
 
             {/* ───── Custom AST Renderer ───── */}
             <div
-              className="space-y-6 font-sans leading-relaxed text-sm select-text"
+              className={`font-sans leading-relaxed text-sm select-text ${
+                twoColumnLayout
+                  ? "columns-1 sm:columns-2 gap-8 space-y-6 [column-fill:_balance]"
+                  : "space-y-6"
+              }`}
               style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
             >
               {parsedSong.sections.map((section, secIdx) => {
@@ -308,7 +361,11 @@ const ChordProRenderer = React.memo(
                     <div
                       key={secIdx}
                       data-section-index={secIdx}
-                      className={`pl-4 md:pl-6 border-l-2 my-6 ${borderColor}`}
+                      className={`pl-4 md:pl-6 border-l-2 my-6 ${borderColor} ${
+                        twoColumnLayout
+                          ? "break-inside-avoid-column inline-block w-full"
+                          : ""
+                      }`}
                     >
                       <div
                         className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider mb-3 select-none ${labelColor}`}
@@ -333,7 +390,7 @@ const ChordProRenderer = React.memo(
                               key={lineIdx}
                               line={line}
                               showChords={showChords}
-                              transpose={transposeVal}
+                              transpose={effectiveTranspose}
                               onChordClick={handleChordClick}
                             />
                           ))
@@ -348,7 +405,11 @@ const ChordProRenderer = React.memo(
                     <div
                       key={secIdx}
                       data-section-index={secIdx}
-                      className="bg-m3-sidebar dark:bg-m3-dark-sidebar p-4 rounded-xl border border-m3-border dark:border-m3-dark-border my-4 select-text"
+                      className={`bg-m3-sidebar dark:bg-m3-dark-sidebar p-4 rounded-xl border border-m3-border dark:border-m3-dark-border my-4 select-text ${
+                        twoColumnLayout
+                          ? "break-inside-avoid-column inline-block w-full"
+                          : ""
+                      }`}
                     >
                       <div className="text-[10px] font-bold text-m3-secondary dark:text-m3-dark-secondary uppercase tracking-wider mb-2 select-none">
                         {section.label || "Tablatura"}
@@ -367,7 +428,11 @@ const ChordProRenderer = React.memo(
                     <div
                       key={secIdx}
                       data-section-index={secIdx}
-                      className="my-2 select-none pl-3 text-[11px] italic text-m3-secondary/70 dark:text-m3-dark-secondary/70"
+                      className={`my-2 select-none pl-3 text-[11px] italic text-m3-secondary/70 dark:text-m3-dark-secondary/70 ${
+                        twoColumnLayout
+                          ? "break-inside-avoid-column inline-block w-full"
+                          : ""
+                      }`}
                     >
                       {section.lines.map((l) => l.text).join(", ")}
                     </div>
@@ -379,7 +444,11 @@ const ChordProRenderer = React.memo(
                   <div
                     key={secIdx}
                     data-section-index={secIdx}
-                    className="relative pl-6 sm:pl-8 border-l border-m3-border/30 dark:border-m3-dark-border/30 py-1.5 my-4"
+                    className={`relative pl-6 sm:pl-8 border-l border-m3-border/30 dark:border-m3-dark-border/30 py-1.5 my-4 ${
+                      twoColumnLayout
+                        ? "break-inside-avoid-column inline-block w-full"
+                        : ""
+                    }`}
                   >
                     {section.label && (
                       <div className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-m3-secondary/20 dark:bg-m3-dark-secondary/20 rounded-full"></div>
@@ -396,7 +465,7 @@ const ChordProRenderer = React.memo(
                           key={lineIdx}
                           line={line}
                           showChords={showChords}
-                          transpose={transposeVal}
+                          transpose={effectiveTranspose}
                           onChordClick={handleChordClick}
                         />
                       ))}

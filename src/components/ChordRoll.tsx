@@ -292,6 +292,7 @@ export function PianoDiagram({ highlightKeys }: { highlightKeys: number[] }) {
 interface ChordRollProps {
   uniqueChords: string[];
   transposeVal: number;
+  capoVal?: number;
   onChordClick?: (chord: string) => void;
   instrument: "guitar" | "piano";
   showDiagrams: boolean;
@@ -301,15 +302,19 @@ interface ChordRollProps {
 export function ChordRoll({
   uniqueChords,
   transposeVal,
+  capoVal = 0,
   onChordClick,
   instrument,
   showDiagrams,
   showChords,
 }: ChordRollProps) {
+  const isGuitar = instrument === "guitar";
+  const effectiveTranspose = transposeVal - (isGuitar ? capoVal : 0);
+
   // Transpose and fetch chord details
   const chordItems = useMemo(() => {
     return uniqueChords.map((chord) => {
-      const transposed = transposeChord(chord, transposeVal);
+      const transposed = transposeChord(chord, effectiveTranspose);
       const fingering = chordDictionary.getFingering(transposed);
       return {
         original: chord,
@@ -317,7 +322,7 @@ export function ChordRoll({
         fingering,
       };
     });
-  }, [uniqueChords, transposeVal]);
+  }, [uniqueChords, effectiveTranspose]);
 
   if (uniqueChords.length === 0 || !showDiagrams || !showChords) return null;
 
@@ -328,6 +333,13 @@ export function ChordRoll({
       onTouchMove={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
     >
+      {isGuitar && capoVal > 0 && (
+        <div className="px-4 mb-2 flex items-center justify-between">
+          <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-900/40">
+            Capo na {capoVal}ª casa — acordes em formato relativo
+          </span>
+        </div>
+      )}
       {/* Scrollable list integrated seamlessly into the background */}
       <div className="flex flex-row overflow-x-auto gap-6 py-2 px-4 no-scrollbar scroll-smooth">
         {chordItems.map((item, idx) => {
