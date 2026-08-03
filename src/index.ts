@@ -13,5 +13,7 @@ export {
   type ConversionResult,
 } from "./chordpro/txt-to-chordpro";
 export * from "./components";
+export * from "./hooks";
 export * from "./types";
+
 

@@ -31,14 +31,27 @@ export interface Tenant {
 
 export interface Song {
   id: string;
+  remoteId?: string;
+  remoteUpdatedAt?: string;
   title: string;
-  artist: string;
+  subtitle?: string;
+  artist?: string;
+  composer?: string;
+  copyright?: string;
+  album?: string;
+  key?: string;
+  tempo?: string;
+  capo?: string;
+  songNumber?: string;
+  comments?: string;
   content: string; // ChordPro text format
   folderId?: string | null;
-  path: string; // e.g., "Hymns/Amazing Grace.pro" or "Amazing Grace.pro"
-  tags: string[];
+  folder?: string;
+  fileName?: string;
+  path?: string; // e.g., "Hymns/Amazing Grace.pro" or "Amazing Grace.pro"
+  tags?: string[];
   createdAt?: string;
-  updatedAt: string;
+  updatedAt: string | number;
 }
 
 export interface ParsedSong extends Song {
@@ -77,8 +90,8 @@ export interface Folder {
   parentId?: string | null;
   songCount?: number;
   folderCount?: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface FoldersResponse {
@@ -110,10 +123,10 @@ export interface Service {
   id: string;
   name: string;
   date: string;
-  notes: string; // Service-wide planning notes
+  notes?: string; // Service-wide planning notes
   elements?: ServiceElement[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MusicianToken {

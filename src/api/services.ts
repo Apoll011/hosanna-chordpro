@@ -1,4 +1,4 @@
-import { Service } from "../types";
+import { Service, ServiceElement } from "../types";
 import { getApiClient } from "./http";
 
 export const servicesApi = {
@@ -35,7 +35,7 @@ export const servicesApi = {
 
   updateServiceElements: async (
     serviceId: string,
-    data: { elements: any[]; updatedAt: string },
+    data: { elements: ServiceElement[]; updatedAt: string },
   ): Promise<Service> => {
     return getApiClient().request<Service>(`/services/${serviceId}/elements`, {
       method: "PUT",
