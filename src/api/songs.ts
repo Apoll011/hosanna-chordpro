@@ -4,37 +4,26 @@ import { getApiClient } from "./http";
 
 export function parseSong(apiSong: Song, folders: Folder[] = []): ParsedSong {
   const parsed = parseChordPro(apiSong.content || "");
-  const songPath = apiSong.path || apiSong.id;
-  const parts = songPath.split("/");
-  const fileName = parts.pop() || "";
+  const songPath = apiSong.path || "";
+  const parts = songPath.split("/").filter(Boolean);
+  const fileName =
+    parts.length > 0
+      ? parts[parts.length - 1]
+      : apiSong.title
+      ? `${apiSong.title.replace(/[\/\\]/g, "_")}.chopro`
+      : "song.chopro";
   const folder = apiSong.folderId
     ? folders.find((f) => f.id === apiSong.folderId)?.name || ""
+    : parts.length > 1
+    ? parts.slice(0, -1).join("/")
     : "";
-  const parsedTimestamp = Date.parse(apiSong.updatedAt);
 
   return {
     ...apiSong,
-    id: songPath,
-    remoteId: apiSong.id,
-    remoteUpdatedAt: apiSong.updatedAt,
     title: apiSong.title || parsed.metadata.title || "Sem Título",
-    subtitle: parsed.metadata.subtitle,
     artist: apiSong.artist || parsed.metadata.artist || "",
-    composer: parsed.metadata.composer,
-    copyright: parsed.metadata.copyright,
-    album: parsed.metadata.album,
-    key: parsed.metadata.key,
-    tempo: parsed.metadata.tempo,
-    capo: parsed.metadata.capo,
-    songNumber: parsed.metadata.songNumber,
-    comments: parsed.metadata.comments,
-    folderId: apiSong.folderId,
     folder,
     fileName,
-    content: apiSong.content,
-    updatedAt: apiSong.updatedAt,
-    parsedUpdatedAt: Number.isNaN(parsedTimestamp) ? Date.now() : parsedTimestamp,
-    tags: apiSong.tags || [],
     metadata: parsed.metadata,
   };
 }

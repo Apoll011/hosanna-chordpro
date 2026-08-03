@@ -42,20 +42,8 @@ export interface Song {
 }
 
 export interface ParsedSong extends Song {
-  remoteId?: string;
-  remoteUpdatedAt?: string;
-  subtitle?: string;
-  composer?: string;
-  copyright?: string;
-  album?: string;
-  key?: string;
-  tempo?: string;
-  capo?: string;
-  songNumber?: string;
-  comments?: string;
   folder: string; // e.g. "Worship" or "" (root)
   fileName: string; // e.g. "Digno_es_Tu.chopro"
-  parsedUpdatedAt?: number;
   metadata: {
     title?: string;
     subtitle?: string;
