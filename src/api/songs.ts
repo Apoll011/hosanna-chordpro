@@ -1,5 +1,43 @@
-import { GetSongsParams, Song, SongsResponse } from "../types";
+import { parseChordPro } from "../chordpro/parser";
+import { Folder, GetSongsParams, ParsedSong, Song, SongsResponse } from "../types";
 import { getApiClient } from "./http";
+
+export function parseSong(apiSong: Song, folders: Folder[] = []): ParsedSong {
+  const parsed = parseChordPro(apiSong.content || "");
+  const songPath = apiSong.path || apiSong.id;
+  const parts = songPath.split("/");
+  const fileName = parts.pop() || "";
+  const folder = apiSong.folderId
+    ? folders.find((f) => f.id === apiSong.folderId)?.name || ""
+    : "";
+  const parsedTimestamp = Date.parse(apiSong.updatedAt);
+
+  return {
+    ...apiSong,
+    id: songPath,
+    remoteId: apiSong.id,
+    remoteUpdatedAt: apiSong.updatedAt,
+    title: apiSong.title || parsed.metadata.title || "Sem Título",
+    subtitle: parsed.metadata.subtitle,
+    artist: apiSong.artist || parsed.metadata.artist || "",
+    composer: parsed.metadata.composer,
+    copyright: parsed.metadata.copyright,
+    album: parsed.metadata.album,
+    key: parsed.metadata.key,
+    tempo: parsed.metadata.tempo,
+    capo: parsed.metadata.capo,
+    songNumber: parsed.metadata.songNumber,
+    comments: parsed.metadata.comments,
+    folderId: apiSong.folderId,
+    folder,
+    fileName,
+    content: apiSong.content,
+    updatedAt: apiSong.updatedAt,
+    parsedUpdatedAt: Number.isNaN(parsedTimestamp) ? Date.now() : parsedTimestamp,
+    tags: apiSong.tags || [],
+    metadata: parsed.metadata,
+  };
+}
 
 export const songsApi = {
   getSongs: async (params: GetSongsParams = {}): Promise<SongsResponse> => {
@@ -26,8 +64,27 @@ export const songsApi = {
     return getApiClient().request<SongsResponse>(`/songs${queryString}`);
   },
 
+  getParsedSongs: async (
+    params: GetSongsParams = {},
+    folders: Folder[] = [],
+  ): Promise<{ songs: ParsedSong[]; total: number; page: number; totalPages: number }> => {
+    const res = await songsApi.getSongs(params);
+    return {
+      ...res,
+      songs: res.songs.map((song) => parseSong(song, folders)),
+    };
+  },
+
   getSongById: async (id: string): Promise<Song> => {
     return getApiClient().request<Song>(`/songs/${id}`);
+  },
+
+  getParsedSongById: async (
+    id: string,
+    folders: Folder[] = [],
+  ): Promise<ParsedSong> => {
+    const song = await songsApi.getSongById(id);
+    return parseSong(song, folders);
   },
 
   createSong: async (data: Partial<Song>): Promise<Song> => {

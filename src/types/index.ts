@@ -31,11 +31,20 @@ export interface Tenant {
 
 export interface Song {
   id: string;
+  title: string;
+  artist: string;
+  content: string; // ChordPro text format
+  folderId?: string | null;
+  path: string; // e.g., "Hymns/Amazing Grace.pro" or "Amazing Grace.pro"
+  tags: string[];
+  createdAt?: string;
+  updatedAt: string;
+}
+
+export interface ParsedSong extends Song {
   remoteId?: string;
   remoteUpdatedAt?: string;
-  title: string;
   subtitle?: string;
-  artist?: string;
   composer?: string;
   copyright?: string;
   album?: string;
@@ -44,17 +53,9 @@ export interface Song {
   capo?: string;
   songNumber?: string;
   comments?: string;
-  content: string; // ChordPro text format
-  folderId?: string | null;
-  folder?: string;
-  fileName?: string;
-  path?: string; // e.g., "Hymns/Amazing Grace.pro" or "Amazing Grace.pro"
-  tags?: string[];
-  createdAt?: string;
-  updatedAt: string | number;
-}
-
-export interface ParsedSong extends Song {
+  folder: string; // e.g. "Worship" or "" (root)
+  fileName: string; // e.g. "Digno_es_Tu.chopro"
+  parsedUpdatedAt?: number;
   metadata: {
     title?: string;
     subtitle?: string;
@@ -73,8 +74,6 @@ export interface ParsedSong extends Song {
     duration?: string;
     [key: string]: string | undefined;
   };
-  folder: string; // e.g. "Worship" or "" (root)
-  fileName: string; // e.g. "Digno_es_Tu.chopro"
 }
 
 export interface SongsResponse {
