@@ -33,6 +33,7 @@ export interface Song {
   id: string;
   title: string;
   artist: string;
+  song_number?: number;
   content: string; // ChordPro text format
   folderId?: string | null;
   path: string; // e.g., "Hymns/Amazing Grace.pro" or "Amazing Grace.pro"
