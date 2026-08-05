@@ -111,6 +111,7 @@ export interface Service {
   id: string;
   name: string;
   date: string;
+  archived: boolean;
   notes?: string; // Service-wide planning notes
   elements?: ServiceElement[];
   createdAt?: string;

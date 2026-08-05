@@ -2,8 +2,8 @@ import { Service, ServiceElement } from "../types";
 import { getApiClient } from "./http";
 
 export const servicesApi = {
-  getServices: async (): Promise<Service[]> => {
-    return getApiClient().request<Service[]>("/services");
+  getServices: async (archived = false): Promise<Service[]> => {
+    return getApiClient().request<Service[]>(`/services?archived=${archived}`);
   },
 
   getServiceById: async (id: string): Promise<Service> => {
