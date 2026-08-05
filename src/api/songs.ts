@@ -1,5 +1,11 @@
 import { parseChordPro } from "../chordpro/parser";
-import { Folder, GetSongsParams, ParsedSong, Song, SongsResponse } from "../types";
+import {
+  Folder,
+  GetSongsParams,
+  ParsedSong,
+  Song,
+  SongsResponse,
+} from "../types";
 import { getApiClient } from "./http";
 
 export function parseSong(apiSong: Song, folders: Folder[] = []): ParsedSong {
@@ -10,13 +16,13 @@ export function parseSong(apiSong: Song, folders: Folder[] = []): ParsedSong {
     parts.length > 0
       ? parts[parts.length - 1]
       : apiSong.title
-      ? `${apiSong.title.replace(/[\/\\]/g, "_")}.chopro`
-      : "song.chopro";
+        ? `${apiSong.title.replace(/[\/\\]/g, "_")}.chopro`
+        : "song.chopro";
   const folder = apiSong.folderId
     ? folders.find((f) => f.id === apiSong.folderId)?.name || ""
     : parts.length > 1
-    ? parts.slice(0, -1).join("/")
-    : "";
+      ? parts.slice(0, -1).join("/")
+      : "";
 
   return {
     ...apiSong,
@@ -56,7 +62,12 @@ export const songsApi = {
   getParsedSongs: async (
     params: GetSongsParams = {},
     folders: Folder[] = [],
-  ): Promise<{ songs: ParsedSong[]; total: number; page: number; totalPages: number }> => {
+  ): Promise<{
+    songs: ParsedSong[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> => {
     const res = await songsApi.getSongs(params);
     return {
       ...res,
@@ -105,18 +116,6 @@ export const songsApi = {
   deleteSong: async (id: string): Promise<void> => {
     return getApiClient().request<void>(`/songs/${id}`, {
       method: "DELETE",
-    });
-  },
-
-  renameSong: async (
-    id: string,
-    newTitle: string,
-    updatedAt: string,
-    newPath?: string,
-  ): Promise<Song> => {
-    return getApiClient().request<Song>(`/songs/${id}/rename`, {
-      method: "PUT",
-      body: JSON.stringify({ newTitle, newPath, updatedAt }),
     });
   },
 
