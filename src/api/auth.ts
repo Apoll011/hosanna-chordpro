@@ -34,7 +34,7 @@ export const authApi = {
 
   editTenant: async (params: EditTenantParams): Promise<any> => {
     return getApiClient().request("/tenants/edit", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         logo: params.logo,
         name: params.name,
