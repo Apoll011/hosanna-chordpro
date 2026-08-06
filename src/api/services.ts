@@ -44,14 +44,12 @@ export const servicesApi = {
   },
 
   archiveService: async (
-    serviceId: string,
-    arquive?: boolean,
+    id: string,
+    data: Partial<Service>,
   ): Promise<Service> => {
-    return getApiClient().request<Service>(`/services/${serviceId}/archive`, {
+    return getApiClient().request<Service>(`/services/${id}/archive`, {
       method: "PUT",
-      body: JSON.stringify({
-        arquive,
-      }),
+      body: JSON.stringify(data),
     });
   },
 };
