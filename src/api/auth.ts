@@ -1,4 +1,5 @@
 import {
+  EditTenantParams,
   LoginParams,
   LoginResponse,
   RegisterTenantParams,
@@ -27,6 +28,17 @@ export const authApi = {
         adminName: params.adminName,
         adminEmail: params.adminEmail,
         adminPassword: params.adminPassword,
+      }),
+    });
+  },
+
+  editTenant: async (params: EditTenantParams): Promise<any> => {
+    return getApiClient().request("/tenants/edit", {
+      method: "POST",
+      body: JSON.stringify({
+        logo: params.logo,
+        name: params.name,
+        active: params.active,
       }),
     });
   },

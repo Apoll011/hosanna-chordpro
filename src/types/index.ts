@@ -163,6 +163,12 @@ export interface RegisterTenantParams {
   adminPassword: string;
 }
 
+export interface EditTenantParams {
+  logo?: string;
+  name?: string;
+  active?: boolean;
+}
+
 export interface RegisterUserParams {
   tenantSlug: string;
   name: string;
