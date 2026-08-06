@@ -25,6 +25,7 @@ export interface CreateMusicianTokenParams {
 export interface Tenant {
   name: string;
   slug: string;
+  logo?: string;
   createdAt: Date;
   updatedAt: Date;
 }
