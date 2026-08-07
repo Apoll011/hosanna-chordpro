@@ -27,6 +27,7 @@ export interface Tenant {
   name: string;
   slug: string;
   logo?: string;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
