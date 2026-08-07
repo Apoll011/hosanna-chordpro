@@ -2,6 +2,10 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  logo?: string;
+  createdAt: string;
+  tenantId: string;
+  isAproved: string;
   role: "admin" | "leader" | "musician";
 }
 
