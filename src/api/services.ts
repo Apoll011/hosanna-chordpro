@@ -42,14 +42,4 @@ export const servicesApi = {
       body: JSON.stringify(data),
     });
   },
-
-  archiveService: async (
-    id: string,
-    data: Partial<Service>,
-  ): Promise<Service> => {
-    return getApiClient().request<Service>(`/services/${id}/archive`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  },
 };
