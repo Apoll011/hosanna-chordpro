@@ -9,6 +9,14 @@ export interface User {
   role: "admin" | "leader" | "musician";
 }
 
+export interface UpdateUser {
+  name?: string;
+  email?: string;
+  logo?: string;
+  newPassword?: string;
+  currentPassword?: string;
+}
+
 export interface LoginParams {
   email: string;
   password: string;

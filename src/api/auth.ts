@@ -5,6 +5,7 @@ import {
   RegisterTenantParams,
   RegisterUserParams,
   Tenant,
+  UpdateUser,
   User,
 } from "../types";
 import { getApiClient } from "./http";
@@ -17,6 +18,13 @@ export const authApi = {
     });
     getApiClient().setTokens(data.accessToken, data.refreshToken);
     return data;
+  },
+
+  updateUser: async (userData: UpdateUser): Promise<User> => {
+    return await getApiClient().request<User>("/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(userData),
+    });
   },
 
   registerTenant: async (params: RegisterTenantParams): Promise<any> => {
