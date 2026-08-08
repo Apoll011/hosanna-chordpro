@@ -165,6 +165,7 @@ export interface AdminUser {
   email: string;
   name: string;
   role: string;
+  logo?: string;
   isApproved: boolean;
   createdAt: string;
   updatedAt?: string;
