@@ -216,6 +216,13 @@ const ChordProRenderer = React.memo(
                     </div>
                   )}
 
+                  {metadata.translator && (
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-2 font-medium flex-wrap">
+                      <User className="w-3.5 h-3.5 text-[#0284c7]" />
+                      <span>Traduzido por: {metadata.translator}</span>
+                    </div>
+                  )}
+
                   {metadata.album && (
                     <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-1 font-medium">
                       <Disc className="w-3.5 h-3.5 text-[#0284c7]" />
@@ -252,11 +259,13 @@ const ChordProRenderer = React.memo(
                       Tom Orig: {metadata.originalKey}
                     </span>
                   )}
-                  {metadata.capo && metadata.capo !== "0" && effectiveCapo === 0 && (
-                    <span className="text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-lg border border-amber-100 dark:border-amber-950/50">
-                      Capo Orig: {metadata.capo}ª casa
-                    </span>
-                  )}
+                  {metadata.capo &&
+                    metadata.capo !== "0" &&
+                    effectiveCapo === 0 && (
+                      <span className="text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-lg border border-amber-100 dark:border-amber-950/50">
+                        Capo Orig: {metadata.capo}ª casa
+                      </span>
+                    )}
                   {metadata.tempo && (
                     <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-950/50 flex items-center gap-1">
                       <Flame className="w-3 h-3" />
