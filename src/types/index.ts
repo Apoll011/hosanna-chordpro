@@ -2,12 +2,44 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  logo?: string;
+  createdAt: string;
+  tenantId: string;
+  isAproved: string;
   role: "admin" | "leader" | "musician";
 }
 
+export interface UpdateUser {
+  name?: string;
+  email?: string;
+  logo?: string;
+  newPassword?: string;
+  currentPassword?: string;
+}
+
+export interface LoginParams {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface CreateMusicianTokenParams {
+  name: string;
+  expiresAt?: string;
+  allowedServices?: string[];
+}
+
 export interface Tenant {
+  id: string;
   name: string;
   slug: string;
+  logo?: string;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,12 +48,36 @@ export interface Song {
   id: string;
   title: string;
   artist: string;
+  song_number?: number;
   content: string; // ChordPro text format
   folderId?: string | null;
   path: string; // e.g., "Hymns/Amazing Grace.pro" or "Amazing Grace.pro"
   tags: string[];
   createdAt?: string;
   updatedAt: string;
+}
+
+export interface ParsedSong extends Song {
+  folder: string; // e.g. "Worship" or "" (root)
+  fileName: string; // e.g. "Digno_es_Tu.chopro"
+  metadata: {
+    title?: string;
+    subtitle?: string;
+    artist?: string;
+    composer?: string;
+    copyright?: string;
+    album?: string;
+    key?: string;
+    originalKey?: string;
+    tempo?: string;
+    time?: string;
+    capo?: string;
+    songNumber?: string;
+    youtube?: string;
+    ccli?: string;
+    duration?: string;
+    [key: string]: string | undefined;
+  };
 }
 
 export interface SongsResponse {
@@ -36,8 +92,9 @@ export interface Folder {
   name: string;
   parentId?: string | null;
   songCount?: number;
-  createdAt: string;
-  updatedAt: string;
+  folderCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface FoldersResponse {
@@ -62,16 +119,18 @@ export interface ServiceElement {
   songId?: string;
   notes?: string;
   passage?: string;
+  duration?: number;
 }
 
 export interface Service {
   id: string;
   name: string;
   date: string;
-  notes: string; // Service-wide planning notes
+  archived: boolean;
+  notes?: string; // Service-wide planning notes
   elements?: ServiceElement[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MusicianToken {
@@ -106,6 +165,7 @@ export interface AdminUser {
   email: string;
   name: string;
   role: string;
+  logo?: string;
   isApproved: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -117,6 +177,12 @@ export interface RegisterTenantParams {
   adminName: string;
   adminEmail: string;
   adminPassword: string;
+}
+
+export interface EditTenantParams {
+  logo?: string;
+  name?: string;
+  active?: boolean;
 }
 
 export interface RegisterUserParams {
@@ -144,15 +210,6 @@ export interface SyncStatusResponse {
     settings: string;
     admins: string;
   };
-}
-
-export interface CifraResult {
-  cifraclub_url: string;
-  name?: string;
-  artist?: string;
-  youtube_url?: string;
-  cifra?: string;
-  error?: string;
 }
 
 export type PrintModelType = "service" | "folder" | "song";

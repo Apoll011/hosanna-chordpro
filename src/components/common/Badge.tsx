@@ -4,10 +4,11 @@ interface BadgeProps {
   children: React.ReactNode;
   variant?: "sky" | "emerald" | "amber" | "rose" | "slate";
   size?: "sm" | "md";
+  className?: string;
 }
 
 export const Badge: React.FC<BadgeProps> = React.memo(
-  ({ children, variant = "sky", size = "sm" }) => {
+  ({ children, variant = "sky", size = "sm", className = "" }) => {
     const variantMap = {
       sky: "bg-m3-primary/10 text-m3-primary border-m3-primary/20",
       emerald:
@@ -25,7 +26,7 @@ export const Badge: React.FC<BadgeProps> = React.memo(
 
     return (
       <span
-        className={`inline-flex items-center rounded-lg border ${variantMap[variant]} ${sizeMap[size]}`}
+        className={`inline-flex items-center rounded-lg border ${variantMap[variant]} ${sizeMap[size]} ${className}`}
       >
         {children}
       </span>

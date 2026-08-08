@@ -1,6 +1,8 @@
 export interface SegmentAST {
   chord: string;
   text: string;
+  /** Relative duration weight. Default is 1. Use @Nx syntax in chord brackets e.g. [Em@2x]. */
+  timing?: number;
 }
 
 export interface MeasureAST {
@@ -9,7 +11,7 @@ export interface MeasureAST {
 }
 
 export interface LineAST {
-  type: 'lyrics' | 'comment' | 'tab' | 'empty' | 'chord-section';
+  type: "lyrics" | "comment" | "tab" | "empty" | "chord-section";
   text?: string;
   segments?: SegmentAST[];
   measures?: MeasureAST[];
@@ -17,7 +19,7 @@ export interface LineAST {
 }
 
 export interface SectionAST {
-  type: 'verse' | 'chorus' | 'bridge' | 'tab' | 'comment';
+  type: "verse" | "chorus" | "bridge" | "tab" | "comment";
   label?: string;
   lines: LineAST[];
 }
@@ -48,28 +50,54 @@ export interface SongAST {
 // ChordPro parsing
 // ---------------------------------------------------------------------------
 
+/** Regex to extract timing annotation from a chord string: chord@Nx */
+const TIMING_REGEX = /^(.+?)@([0-9]*\.?[0-9]+)x$/;
+
+function parseChordTiming(rawChord: string): {
+  chord: string;
+  timing?: number;
+} {
+  const match = rawChord.match(TIMING_REGEX);
+  if (match) {
+    return { chord: match[1], timing: parseFloat(match[2]) };
+  }
+  return { chord: rawChord };
+}
+
 export function parseLineSegments(lineText: string): SegmentAST[] {
   const segments: SegmentAST[] = [];
   const regex = /\[([^\]]+)\]/g;
   let match;
   let lastIndex = 0;
-  let currentChord = '';
+  let currentChord = "";
+  let currentTiming: number | undefined;
 
   while ((match = regex.exec(lineText)) !== null) {
-    const chord = match[1];
+    const rawChord = match[1];
+    const { chord, timing } = parseChordTiming(rawChord);
     const textBefore = lineText.slice(lastIndex, match.index);
 
-    if (lastIndex === 0 && textBefore === '') {
+    if (lastIndex === 0 && textBefore === "") {
       currentChord = chord;
+      currentTiming = timing;
     } else {
-      segments.push({ chord: currentChord, text: textBefore });
+      segments.push({
+        chord: currentChord,
+        text: textBefore,
+        timing: currentTiming,
+      });
       currentChord = chord;
+      currentTiming = timing;
     }
     lastIndex = regex.lastIndex;
   }
 
   const remainingText = lineText.slice(lastIndex);
-  segments.push({ chord: currentChord, text: remainingText });
+  segments.push({
+    chord: currentChord,
+    text: remainingText,
+    timing: currentTiming,
+  });
 
   return segments;
 }
@@ -82,14 +110,14 @@ export function parseChordPro(content: string): SongAST {
   let currentSection: SectionAST | null = null;
   let isTab = false;
   let isGrid = false;
-  
+
   // Guarda as linhas do último refrão para ser invocado com a diretiva {chorus}
   let lastChorusLines: LineAST[] = [];
 
   const commitSection = () => {
     if (currentSection) {
       sections.push(currentSection);
-      if (currentSection.type === 'chorus') {
+      if (currentSection.type === "chorus") {
         lastChorusLines = [...currentSection.lines];
       }
       currentSection = null;
@@ -97,183 +125,245 @@ export function parseChordPro(content: string): SongAST {
   };
 
   const aliasMap: Record<string, string> = {
-    t: 'title', st: 'subtitle', a: 'artist', k: 'key',
-    c: 'comment', ci: 'comment_italic', cb: 'comment_box',
-    soc: 'start_of_chorus', eoc: 'end_of_chorus',
-    sov: 'start_of_verse', eov: 'end_of_verse',
-    sob: 'start_of_bridge', eob: 'end_of_bridge',
-    sot: 'start_of_tab', eot: 'end_of_tab',
-    sog: 'start_of_grid', eog: 'end_of_grid',
-    ch: 'chorus', v: 'verse', b: 'bridge',
-    re: 'repeat', ns: 'new_song',
-    time_signature: 'time', timesignature: 'time', 'time signature': 'time',
-    original_key: 'original_key', 'original key': 'original_key',
+    t: "title",
+    st: "subtitle",
+    a: "artist",
+    k: "key",
+    c: "comment",
+    ci: "comment_italic",
+    cb: "comment_box",
+    soc: "start_of_chorus",
+    eoc: "end_of_chorus",
+    sov: "start_of_verse",
+    eov: "end_of_verse",
+    sob: "start_of_bridge",
+    eob: "end_of_bridge",
+    sot: "start_of_tab",
+    eot: "end_of_tab",
+    sog: "start_of_grid",
+    eog: "end_of_grid",
+    ch: "chorus",
+    v: "verse",
+    b: "bridge",
+    re: "repeat",
+    ns: "new_song",
+    time_signature: "time",
+    timesignature: "time",
+    "time signature": "time",
+    original_key: "original_key",
+    "original key": "original_key",
   };
 
   for (let line of lines) {
     const trimmed = line.trim();
 
     // Diretivas {}
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
       const directive = trimmed.slice(1, -1).trim();
-      const colonIndex = directive.indexOf(':');
+      const colonIndex = directive.indexOf(":");
 
       let rawName = directive;
-      let value = '';
+      let value = "";
 
       if (colonIndex !== -1) {
         rawName = directive.substring(0, colonIndex).trim();
         value = directive.substring(colonIndex + 1).trim();
       }
-      
+
       const lowerName = rawName.toLowerCase();
       const name = aliasMap[lowerName] || lowerName;
 
       switch (name) {
-        case 'start_of_chorus':
+        case "start_of_chorus":
           commitSection();
-          currentSection = { type: 'chorus', label: value || 'Refrão', lines: [] };
+          currentSection = {
+            type: "chorus",
+            label: value || "Refrão",
+            lines: [],
+          };
           break;
-        case 'start_of_verse':
+        case "start_of_verse":
           commitSection();
-          currentSection = { type: 'verse', label: value || 'Verso', lines: [] };
+          currentSection = {
+            type: "verse",
+            label: value || "Verso",
+            lines: [],
+          };
           break;
-        case 'start_of_bridge':
+        case "start_of_bridge":
           commitSection();
-          currentSection = { type: 'bridge', label: value || 'Ponte', lines: [] };
+          currentSection = {
+            type: "bridge",
+            label: value || "Ponte",
+            lines: [],
+          };
           break;
-        case 'start_of_tab':
+        case "start_of_tab":
           commitSection();
           isTab = true;
-          currentSection = { type: 'tab', label: value || 'Tablatura', lines: [] };
+          currentSection = {
+            type: "tab",
+            label: value || "Tablatura",
+            lines: [],
+          };
           break;
-        case 'start_of_grid':
+        case "start_of_grid":
           commitSection();
           isGrid = true;
-          currentSection = { type: 'verse', label: value || 'Grid', lines: [] };
+          currentSection = { type: "verse", label: value || "Grid", lines: [] };
           break;
 
-        case 'end_of_chorus':
-          if (currentSection?.type === 'chorus') commitSection();
+        case "end_of_chorus":
+          if (currentSection?.type === "chorus") commitSection();
           break;
-        case 'end_of_verse':
-          if (currentSection?.type === 'verse') commitSection();
+        case "end_of_verse":
+          if (currentSection?.type === "verse") commitSection();
           break;
-        case 'end_of_bridge':
-          if (currentSection?.type === 'bridge') commitSection();
+        case "end_of_bridge":
+          if (currentSection?.type === "bridge") commitSection();
           break;
-        case 'end_of_tab':
+        case "end_of_tab":
           isTab = false;
-          if (currentSection?.type === 'tab') commitSection();
+          if (currentSection?.type === "tab") commitSection();
           break;
-        case 'end_of_grid':
+        case "end_of_grid":
           isGrid = false;
-          if (currentSection?.type === 'verse' && currentSection.label === 'Grid') commitSection();
+          if (
+            currentSection?.type === "verse" &&
+            currentSection.label === "Grid"
+          )
+            commitSection();
           break;
 
-        case 'chorus':
+        case "chorus":
           // {chorus} no ChordPro copia/repete o refrão passado
           commitSection();
           sections.push({
-            type: 'chorus',
-            label: value || 'Refrão',
-            lines: [...lastChorusLines]
+            type: "chorus",
+            label: value || "Refrão",
+            lines: [...lastChorusLines],
           });
           break;
-        
-        case 'verse':
+
+        case "verse":
           commitSection();
-          currentSection = { type: 'verse', label: value || 'Verso', lines: [] };
+          currentSection = {
+            type: "verse",
+            label: value || "Verso",
+            lines: [],
+          };
           break;
-          
-        case 'bridge':
+
+        case "bridge":
           commitSection();
-          currentSection = { type: 'bridge', label: value || 'Ponte', lines: [] };
+          currentSection = {
+            type: "bridge",
+            label: value || "Ponte",
+            lines: [],
+          };
           break;
 
         // Comentários Inline ou Isolados
-        case 'comment':
-        case 'comment_italic':
-        case 'comment_box':
-          const commentLine: LineAST = { type: 'comment', text: value };
+        case "comment":
+        case "comment_italic":
+        case "comment_box":
+          const commentLine: LineAST = { type: "comment", text: value };
           if (currentSection) {
             currentSection.lines.push(commentLine);
           } else {
-            sections.push({ type: 'comment', lines: [commentLine] });
+            sections.push({ type: "comment", lines: [commentLine] });
           }
           break;
 
-        case 'repeat':
-          const repeatLine: LineAST = { type: 'comment', text: value ? `Repetir: ${value}` : 'Repetir' };
+        case "repeat":
+          const repeatLine: LineAST = {
+            type: "comment",
+            text: value ? `Repetir: ${value}` : "Repetir",
+          };
           if (currentSection) {
             currentSection.lines.push(repeatLine);
           } else {
-            sections.push({ type: 'comment', lines: [repeatLine] });
+            sections.push({ type: "comment", lines: [repeatLine] });
           }
           break;
 
-        case 'new_song':
+        case "new_song":
           commitSection();
+          break;
+
+        case "duration":
+          if (/^\d{1,2}:\d{2}$/.test(value)) {
+            const [minutes, seconds] = value.split(":").map(Number);
+            metadata["duration"] = (minutes * 60 + seconds).toString();
+          } else {
+            metadata["duration"] = value;
+          }
           break;
 
         default:
           if (value) {
-             // Normaliza dinamicamente "ccli_number", "original key" para "ccliNumber", "originalKey", etc.
-             const metaKey = name
-               .replace(/[-_\s]+([a-zA-Z])/g, (_, letter) => letter.toUpperCase())
-               .replace(/\s+/g, ''); // limpa sobras
-               
-             metadata[metaKey] = value;
+            // Normaliza dinamicamente "ccli_number", "original key" para "ccliNumber", "originalKey", etc.
+            const metaKey = name
+              .replace(/[-_\s]+([a-zA-Z])/g, (_, letter) =>
+                letter.toUpperCase(),
+              )
+              .replace(/\s+/g, ""); // limpa sobras
+
+            metadata[metaKey] = value;
           }
           break;
       }
       continue;
     }
 
-    if (trimmed === '') {
-      if (currentSection) currentSection.lines.push({ type: 'empty' });
-      continue;
-    }
-    
-    // Ignorar comentários invisíveis (Padrão ChordPro)
-    if (trimmed.startsWith('#') && !isTab) {
+    if (trimmed === "") {
+      if (currentSection) currentSection.lines.push({ type: "empty" });
       continue;
     }
 
-    let lineType: LineAST['type'] = 'lyrics';
+    // Ignorar comentários invisíveis (Padrão ChordPro)
+    if (trimmed.startsWith("#") && !isTab) {
+      continue;
+    }
+
+    let lineType: LineAST["type"] = "lyrics";
     let parsedSegments: SegmentAST[] = [];
 
     if (isTab || isGrid) {
-      lineType = 'tab';
+      lineType = "tab";
     } else {
       parsedSegments = parseLineSegments(line);
-      const textContent = parsedSegments.map(s => s.text).join('');
+      const textContent = parsedSegments.map((s) => s.text).join("");
       const onlyBarsAndSpaces = /^[\s|:\-]*$/.test(textContent);
-      const hasBars = textContent.includes('|');
-      
+      const hasBars = textContent.includes("|");
+
       if (onlyBarsAndSpaces && hasBars) {
-         lineType = 'chord-section';
+        lineType = "chord-section";
       }
     }
 
     const parsedLine: LineAST = { type: lineType };
 
-    if (lineType === 'tab') {
+    if (lineType === "tab") {
       parsedLine.text = line;
-    } else if (lineType === 'lyrics') {
+    } else if (lineType === "lyrics") {
       parsedLine.segments = parsedSegments;
-    } else if (lineType === 'chord-section') {
-      parsedLine.segments = parsedSegments; 
+    } else if (lineType === "chord-section") {
+      parsedLine.segments = parsedSegments;
       const measures: MeasureAST[] = [];
       let currentChords: SegmentAST[] = [];
-      let startBarline = '';
+      let startBarline = "";
       let hasSeenChord = false;
       let startBarlineFound = false;
 
       for (let i = 0; i < parsedSegments.length; i++) {
         const seg = parsedSegments[i];
         if (seg.chord) {
-          currentChords.push({ chord: seg.chord, text: '' });
+          currentChords.push({
+            chord: seg.chord,
+            text: "",
+            timing: seg.timing,
+          });
           hasSeenChord = true;
         }
 
@@ -293,7 +383,7 @@ export function parseChordPro(content: string): SongAST {
       }
 
       if (currentChords.length > 0) {
-        measures.push({ chords: currentChords, endBarline: '' });
+        measures.push({ chords: currentChords, endBarline: "" });
       }
 
       parsedLine.measures = measures;
@@ -301,7 +391,7 @@ export function parseChordPro(content: string): SongAST {
     }
 
     if (!currentSection) {
-      currentSection = { type: 'verse', lines: [] };
+      currentSection = { type: "verse", lines: [] };
     }
     currentSection.lines.push(parsedLine);
   }
@@ -309,36 +399,52 @@ export function parseChordPro(content: string): SongAST {
   commitSection();
 
   if (!metadata.title) {
-    metadata.title = 'Sem Título';
+    metadata.title = "Sem Título";
   }
 
   return { metadata, sections };
 }
 
 // Para reconstruir o texto padrão, caso necessário
-export function buildChordProText(metadata: { [key: string]: string | undefined }, bodyContent: string): string {
+export function buildChordProText(
+  metadata: { [key: string]: string | undefined },
+  bodyContent: string,
+): string {
   const lines: string[] = [];
 
   const primaryKeys = [
-    'title', 'subtitle', 'artist', 'composer', 'album', 'copyright', 
-    'key', 'originalKey', 'capo', 'tempo', 'time', 'duration', 'songNumber', 'ccli', 'youtube'
+    "title",
+    "subtitle",
+    "artist",
+    "composer",
+    "album",
+    "copyright",
+    "key",
+    "originalKey",
+    "capo",
+    "tempo",
+    "time",
+    "duration",
+    "songNumber",
+    "ccli",
+    "youtube",
   ];
-  
+
   for (const k of primaryKeys) {
     if (metadata[k]) {
-      const directiveName = k.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
+      const directiveName = k.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase());
       lines.push(`{${directiveName}: ${metadata[k]}}`);
     }
   }
 
   for (const k in metadata) {
-    if (!primaryKeys.includes(k) && metadata[k] && k !== 'title') {
-       const directiveName = k.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
-       lines.push(`{${directiveName}: ${metadata[k]}}`);
+    if (!primaryKeys.includes(k) && metadata[k] && k !== "title") {
+      const directiveName = k.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase());
+      lines.push(`{${directiveName}: ${metadata[k]}}`);
     }
   }
 
-  lines.push(''); 
+  lines.push("");
   lines.push(bodyContent.trim());
-  return lines.join('\n');
+  return lines.join("\n");
 }

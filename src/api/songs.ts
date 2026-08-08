@@ -1,5 +1,38 @@
-import { GetSongsParams, Song, SongsResponse } from "../types";
+import { parseChordPro } from "../chordpro/parser";
+import {
+  Folder,
+  GetSongsParams,
+  ParsedSong,
+  Song,
+  SongsResponse,
+} from "../types";
 import { getApiClient } from "./http";
+
+export function parseSong(apiSong: Song, folders: Folder[] = []): ParsedSong {
+  const parsed = parseChordPro(apiSong.content || "");
+  const songPath = apiSong.path || "";
+  const parts = songPath.split("/").filter(Boolean);
+  const fileName =
+    parts.length > 0
+      ? parts[parts.length - 1]
+      : apiSong.title
+        ? `${apiSong.title.replace(/[\/\\]/g, "_")}.chopro`
+        : "song.chopro";
+  const folder = apiSong.folderId
+    ? folders.find((f) => f.id === apiSong.folderId)?.name || ""
+    : parts.length > 1
+      ? parts.slice(0, -1).join("/")
+      : "";
+
+  return {
+    ...apiSong,
+    title: apiSong.title || parsed.metadata.title || "Sem Título",
+    artist: apiSong.artist || parsed.metadata.artist || "",
+    folder,
+    fileName,
+    metadata: parsed.metadata,
+  };
+}
 
 export const songsApi = {
   getSongs: async (params: GetSongsParams = {}): Promise<SongsResponse> => {
@@ -26,8 +59,32 @@ export const songsApi = {
     return getApiClient().request<SongsResponse>(`/songs${queryString}`);
   },
 
+  getParsedSongs: async (
+    params: GetSongsParams = {},
+    folders: Folder[] = [],
+  ): Promise<{
+    songs: ParsedSong[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> => {
+    const res = await songsApi.getSongs(params);
+    return {
+      ...res,
+      songs: res.songs.map((song) => parseSong(song, folders)),
+    };
+  },
+
   getSongById: async (id: string): Promise<Song> => {
     return getApiClient().request<Song>(`/songs/${id}`);
+  },
+
+  getParsedSongById: async (
+    id: string,
+    folders: Folder[] = [],
+  ): Promise<ParsedSong> => {
+    const song = await songsApi.getSongById(id);
+    return parseSong(song, folders);
   },
 
   createSong: async (data: Partial<Song>): Promise<Song> => {
@@ -59,18 +116,6 @@ export const songsApi = {
   deleteSong: async (id: string): Promise<void> => {
     return getApiClient().request<void>(`/songs/${id}`, {
       method: "DELETE",
-    });
-  },
-
-  renameSong: async (
-    id: string,
-    newTitle: string,
-    updatedAt: string,
-    newPath?: string,
-  ): Promise<Song> => {
-    return getApiClient().request<Song>(`/songs/${id}/rename`, {
-      method: "PUT",
-      body: JSON.stringify({ newTitle, newPath, updatedAt }),
     });
   },
 

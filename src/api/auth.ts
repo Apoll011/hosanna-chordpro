@@ -1,21 +1,14 @@
 import {
+  EditTenantParams,
+  LoginParams,
+  LoginResponse,
   RegisterTenantParams,
   RegisterUserParams,
   Tenant,
+  UpdateUser,
   User,
 } from "../types";
 import { getApiClient } from "./http";
-
-export interface LoginParams {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-}
 
 export const authApi = {
   login: async (credentials: LoginParams): Promise<LoginResponse> => {
@@ -27,6 +20,13 @@ export const authApi = {
     return data;
   },
 
+  updateUser: async (userData: UpdateUser): Promise<User> => {
+    return await getApiClient().request<User>("/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(userData),
+    });
+  },
+
   registerTenant: async (params: RegisterTenantParams): Promise<any> => {
     return getApiClient().request("/tenants/register", {
       method: "POST",
@@ -36,6 +36,17 @@ export const authApi = {
         adminName: params.adminName,
         adminEmail: params.adminEmail,
         adminPassword: params.adminPassword,
+      }),
+    });
+  },
+
+  editTenant: async (params: EditTenantParams): Promise<any> => {
+    return getApiClient().request("/tenants/edit", {
+      method: "PUT",
+      body: JSON.stringify({
+        logo: params.logo,
+        name: params.name,
+        active: params.active,
       }),
     });
   },

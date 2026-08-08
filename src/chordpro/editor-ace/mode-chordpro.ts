@@ -97,7 +97,7 @@ export function registerChordproMode(): void {
               ],
               regex:
                 rStart +
-                "(title|t|subtitle|st|artist|a|composer|lyricist|copyright|album|year|key|k|time|tempo|duration|capo|meta|c|comment|chord|define|x_[a-zA-Z0-9_]+)" +
+                "(title|t|subtitle|st|artist|a|composer|lyricist|copyright|album|year|key|k|time|tempo|duration|capo|meta|c|comment|chord|define|song_number|x_[a-zA-Z0-9_]+)" +
                 rSep +
                 "(.*?)" +
                 rEnd,
@@ -108,14 +108,30 @@ export function registerChordproMode(): void {
             {
               token: ["punctuation.tag", "keyword.operator", "punctuation.tag"],
               regex:
-                rStart + "(column_break|cb|new_page|np|new_song|ns)" + rEnd,
+                rStart +
+                "(column_break|cb|new_page|np|new_song|ns|chorus)" +
+                rEnd,
               caseInsensitive: true,
             },
+
+            // Chord Section barlines (||, |:, :|, |)
+            { token: "constant.character.barline", regex: "\\|\\||:\\||\\|:|\\|" },
 
             // Inline Annotations e.g. [* Bass fill]
             {
               token: ["punctuation.tag", "comment.line", "punctuation.tag"],
               regex: "(\\[\\s*\\*)(.*?)(\\])",
+            },
+
+            // Chord with timing annotation e.g. [Em@2x] or [C@0.5x]
+            {
+              token: [
+                "punctuation.tag",
+                "constant.language.bold",
+                "keyword.operator.timing",
+                "punctuation.tag",
+              ],
+              regex: "(\\[)([^\\]@]+)(@[0-9]*\\.?[0-9]+x)(\\])",
             },
 
             // Chords e.g. [C#maj7/F]

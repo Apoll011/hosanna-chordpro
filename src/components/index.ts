@@ -7,5 +7,7 @@ export { Modal } from "./common/Modal";
 export { Pagination } from "./common/Pagination";
 export { Spinner } from "./common/Spinner";
 
+export { default as ChordProRenderer } from "./ChordProRenderer";
+export { ChordRoll, GuitarDiagram, PianoDiagram } from "./ChordRoll";
 export { default as Editor } from "./Editor";
 export { EditorSettingsPanel } from "./EditorSettingsPanel";

@@ -10,6 +10,15 @@ export function registerChordproSnippets(): void {
         "snippet album",
         "	{album: ${1:value}}",
 
+        "snippet youtube",
+        "	{youtube: ${1:url}}",
+
+        "snippet number",
+        "	{song_number: ${1:number}}",
+
+        "snippet cc",
+        "	{chorus}",
+
         // arranger tag
         "snippet arranger",
         "	{arranger: ${1:value}}",
@@ -86,7 +95,7 @@ export function registerChordproSnippets(): void {
         "snippet eoc",
         "	{end_of_chorus}",
         "snippet chorus",
-        "	{start_of_chorus: ${1:Chorus}}",
+        "	{start_of_chorus: ${1:Refrão}}",
         "	${2:lyrics}",
         "	{end_of_chorus}",
 
@@ -96,7 +105,7 @@ export function registerChordproSnippets(): void {
         "snippet eov",
         "	{end_of_verse}",
         "snippet verse",
-        "	{start_of_verse: ${1:Verse} ${2:1}}",
+        "	{start_of_verse: ${1:Verso} ${2:1}}",
         "	${3:lyrics}",
         "	{end_of_verse}",
 
@@ -106,7 +115,7 @@ export function registerChordproSnippets(): void {
         "snippet eob",
         "	{end_of_bridge}",
         "snippet bridge",
-        "	{start_of_bridge: ${1:Bridge}}",
+        "	{start_of_bridge: ${1:Ponte}}",
         "	${2:lyrics}",
         "	{end_of_bridge}",
 
@@ -140,23 +149,27 @@ export function registerChordproSnippets(): void {
         // that's all folks!
         // chord usage
         "snippet [",
-        "	[${1:Am}]",
+        "\t[${1:Am}]",
+
+        // chord section / grid notation
+        "snippet ||",
+        "\t||[${1:Am}]|[${2:C}]|[${3:G}]|[${4:F}]||",
+
+        "snippet grid",
+        "\t{start_of_grid}",
+        "\t||[${1:Em}]|[${2:C}]|[${3:D}]||",
+        "\t{end_of_grid}",
 
         "snippet !",
-        "	{title: ${1:value}}",
-        "	{artist: ${2:value}}",
-        "	{duration: ${3:4:00}}",
-        "	{key: ${4:C}}",
-        "	",
-        "	${5:lyrics}",
-        "	{start_of_chorus}",
-        "	${6:lyrics}",
+        "\t{title: ${1:value}}",
+        "\t{artist: ${2:value}}",
+        "\t{duration: ${3:4:00}}",
+        "\t{key: ${4:C}}",
+        "\t",
+        "\t${5:lyrics}",
+        "\t{start_of_chorus}",
+        "\t${6:lyrics}",
         "	{end_of_chorus}",
-
-        "snippet yt",
-        "   {youtube: \${1:url}}",
-        "snippet youtube",
-        "   {youtube: \${1:url}}",
       ].join("\n");
       exports.scope = "chordpro";
     },

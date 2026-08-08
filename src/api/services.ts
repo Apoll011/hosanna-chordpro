@@ -1,9 +1,9 @@
-import { Service } from "../types";
+import { Service, ServiceElement } from "../types";
 import { getApiClient } from "./http";
 
 export const servicesApi = {
-  getServices: async (): Promise<Service[]> => {
-    return getApiClient().request<Service[]>("/services");
+  getServices: async (archived = false): Promise<Service[]> => {
+    return getApiClient().request<Service[]>(`/services?archived=${archived}`);
   },
 
   getServiceById: async (id: string): Promise<Service> => {
@@ -35,9 +35,19 @@ export const servicesApi = {
 
   updateServiceElements: async (
     serviceId: string,
-    data: { elements: any[]; updatedAt: string },
+    data: { elements: ServiceElement[]; updatedAt: string },
   ): Promise<Service> => {
     return getApiClient().request<Service>(`/services/${serviceId}/elements`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  archiveService: async (
+    id: string,
+    data: Partial<Service>,
+  ): Promise<Service> => {
+    return getApiClient().request<Service>(`/services/${id}/archive`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
