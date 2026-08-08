@@ -534,7 +534,7 @@ const ChordProRenderer = React.memo(
 
         {/* ───── YouTube Spotify-like Mini Player Bottom Bar ───── */}
         {showYoutubePlayer && metadata.youtube && (
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-m3-card dark:bg-m3-dark-card border-t border-m3-border dark:border-m3-dark-border shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-30 px-4 flex items-center justify-between animate-in slide-in-from-bottom-full">
+          <div className="fixed bottom-0 left-0 right-0 h-16 bg-m3-card dark:bg-m3-dark-card border-t border-m3-border dark:border-m3-dark-border shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-[200] px-4 flex items-center justify-between animate-in slide-in-from-bottom-full">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0 border border-m3-border/50">
                 {metadata.youtube.match(YT_ID_REGEX) ||
