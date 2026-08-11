@@ -1,6 +1,6 @@
 {
   "name": "@hosanna/shared",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Shared logic between Hosanna Studio and mobile app",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
