@@ -1,49 +1,3 @@
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  logo?: string;
-  createdAt: string;
-  tenantId: string;
-  isAproved: string;
-  role: "admin" | "leader" | "musician";
-}
-
-export interface UpdateUser {
-  name?: string;
-  email?: string;
-  logo?: string;
-  newPassword?: string;
-  currentPassword?: string;
-}
-
-export interface LoginParams {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface CreateMusicianTokenParams {
-  name: string;
-  expiresAt?: string;
-  allowedServices?: string[];
-}
-
-export interface Tenant {
-  id: string;
-  name: string;
-  slug: string;
-  logo?: string;
-  active: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface Song {
   id: string;
   title: string;
@@ -133,20 +87,6 @@ export interface Service {
   updatedAt?: string;
 }
 
-export interface MusicianToken {
-  id: string;
-  name: string;
-  token?: string; // Only present in create/regenerate response
-  tokenPreview: string;
-  status: "active" | "revoked" | "expired";
-  expiresAt: string;
-  revokedAt?: string | null;
-  lastUsedAt?: string | null;
-  allowedServices: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface ServerSettings {
   id: string;
   serverName: string;
@@ -157,46 +97,6 @@ export interface ServerSettings {
   maxUploadMB: number;
   showChordsDefault?: boolean;
   updatedAt: string;
-}
-
-export interface AdminUser {
-  id: string;
-  tenantId?: string;
-  email: string;
-  name: string;
-  role: string;
-  logo?: string;
-  isApproved: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface RegisterTenantParams {
-  tenantName: string;
-  tenantSlug: string;
-  adminName: string;
-  adminEmail: string;
-  adminPassword: string;
-}
-
-export interface EditTenantParams {
-  logo?: string;
-  name?: string;
-  active?: boolean;
-}
-
-export interface RegisterUserParams {
-  tenantSlug: string;
-  name: string;
-  email: string;
-  password: string;
-}
-
-export interface CreateAdminParams {
-  email: string;
-  password: string;
-  name: string;
-  role?: string;
 }
 
 export interface SyncStatusResponse {
