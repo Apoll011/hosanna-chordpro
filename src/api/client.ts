@@ -110,6 +110,7 @@ export class ApiClient {
     }
 
     const config: RequestInit = {
+      credentials: "include",
       ...options,
       headers: requestHeaders,
     };
