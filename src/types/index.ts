@@ -87,18 +87,6 @@ export interface Service {
   updatedAt?: string;
 }
 
-export interface ServerSettings {
-  id: string;
-  serverName: string;
-  defaultKey: string;
-  syncIntervalSeconds: number;
-  allowPublicRead: boolean;
-  autoBackupEnabled: boolean;
-  maxUploadMB: number;
-  showChordsDefault?: boolean;
-  updatedAt: string;
-}
-
 export interface SyncStatusResponse {
   versionHash: string;
   timestamp: string;
@@ -110,40 +98,6 @@ export interface SyncStatusResponse {
     settings: string;
     admins: string;
   };
-}
-
-export type PrintModelType = "service" | "folder" | "song";
-
-export interface Template {
-  id: string;
-  model: PrintModelType;
-  name: string;
-  description: string;
-  defaultSettings: Record<string, any>;
-}
-
-export interface UpdateTemplateSettings {
-  model: PrintModelType;
-  templateId: string;
-  settings: Record<string, any>;
-}
-
-export interface Templates {
-  activeSettings: {
-    service: {
-      id: string;
-      config: Record<string, any>;
-    };
-    folder: {
-      id: string;
-      config: Record<string, any>;
-    };
-    song: {
-      id: string;
-      config: Record<string, any>;
-    };
-  };
-  registry: Template[];
 }
 
 export interface GetSongsParams {
