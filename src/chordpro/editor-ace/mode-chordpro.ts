@@ -97,7 +97,7 @@ export function registerChordproMode(): void {
               ],
               regex:
                 rStart +
-                "(title|t|subtitle|st|artist|a|composer|lyricist|translator|youtube|chorus|copyright|album|year|key|k|time|tempo|duration|capo|meta|c|comment|chord|define|song_number|x_[a-zA-Z0-9_]+)" +
+                "(title|t|subtitle|st|artist|a|composer|lyricist|ccli|translator|youtube|chorus|copyright|album|year|key|k|time|tempo|duration|capo|meta|c|comment|chord|define|song_number|x_[a-zA-Z0-9_]+)" +
                 rSep +
                 "(.*?)" +
                 rEnd,

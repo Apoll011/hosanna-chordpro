@@ -65,7 +65,7 @@ export const foldersApi = {
     id: string,
   ): Promise<{ deletedSongs: number }> => {
     return getApiClient().request<{ deletedSongs: number }>(
-      `/folders/${id}/with-songs`,
+      `/folders/${id}/with-content`,
       {
         method: "DELETE",
       },
@@ -76,7 +76,7 @@ export const foldersApi = {
     id: string,
   ): Promise<{ movedSongs: number }> => {
     return getApiClient().request<{ movedSongs: number }>(
-      `/folders/${id}/move-songs-to-root`,
+      `/folders/${id}/move-content-to-root`,
       {
         method: "DELETE",
       },
