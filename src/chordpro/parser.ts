@@ -1,7 +1,6 @@
 export interface SegmentAST {
   chord: string;
   text: string;
-  /** Relative duration weight. Default is 1. Use @Nx syntax in chord brackets e.g. [Em@2x]. */
   timing?: number;
 }
 
@@ -11,7 +10,13 @@ export interface MeasureAST {
 }
 
 export interface LineAST {
-  type: "lyrics" | "comment" | "tab" | "empty" | "chord-section";
+  type:
+    | "lyrics"
+    | "comment"
+    | "comment_box"
+    | "tab"
+    | "empty"
+    | "chord-section";
   text?: string;
   segments?: SegmentAST[];
   measures?: MeasureAST[];
@@ -19,9 +24,10 @@ export interface LineAST {
 }
 
 export interface SectionAST {
-  type: "verse" | "chorus" | "bridge" | "tab" | "comment";
+  type: "verse" | "chorus" | "bridge" | "tab" | "comment" | "grid" | "new_song";
   label?: string;
   lines: LineAST[];
+  repeat?: string;
 }
 
 export interface SongAST {
@@ -46,11 +52,6 @@ export interface SongAST {
   sections: SectionAST[];
 }
 
-// ---------------------------------------------------------------------------
-// ChordPro parsing
-// ---------------------------------------------------------------------------
-
-/** Regex to extract timing annotation from a chord string: chord@Nx */
 const TIMING_REGEX = /^(.+?)@([0-9]*\.?[0-9]+)x$/;
 
 function parseChordTiming(rawChord: string): {
@@ -58,9 +59,7 @@ function parseChordTiming(rawChord: string): {
   timing?: number;
 } {
   const match = rawChord.match(TIMING_REGEX);
-  if (match) {
-    return { chord: match[1], timing: parseFloat(match[2]) };
-  }
+  if (match) return { chord: match[1], timing: parseFloat(match[2]) };
   return { chord: rawChord };
 }
 
@@ -110,8 +109,6 @@ export function parseChordPro(content: string): SongAST {
   let currentSection: SectionAST | null = null;
   let isTab = false;
   let isGrid = false;
-
-  // Guarda as linhas do último refrão para ser invocado com a diretiva {chorus}
   let lastChorusLines: LineAST[] = [];
 
   const commitSection = () => {
@@ -157,11 +154,9 @@ export function parseChordPro(content: string): SongAST {
   for (let line of lines) {
     const trimmed = line.trim();
 
-    // Diretivas {}
     if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
       const directive = trimmed.slice(1, -1).trim();
       const colonIndex = directive.indexOf(":");
-
       let rawName = directive;
       let value = "";
 
@@ -210,7 +205,7 @@ export function parseChordPro(content: string): SongAST {
         case "start_of_grid":
           commitSection();
           isGrid = true;
-          currentSection = { type: "verse", label: value || "Grid", lines: [] };
+          currentSection = { type: "grid", label: value || "Grid", lines: [] };
           break;
 
         case "end_of_chorus":
@@ -228,15 +223,10 @@ export function parseChordPro(content: string): SongAST {
           break;
         case "end_of_grid":
           isGrid = false;
-          if (
-            currentSection?.type === "verse" &&
-            currentSection.label === "Grid"
-          )
-            commitSection();
+          if (currentSection?.type === "grid") commitSection();
           break;
 
         case "chorus":
-          // {chorus} no ChordPro copia/repete o refrão passado
           commitSection();
           sections.push({
             type: "chorus",
@@ -244,7 +234,6 @@ export function parseChordPro(content: string): SongAST {
             lines: [...lastChorusLines],
           });
           break;
-
         case "verse":
           commitSection();
           currentSection = {
@@ -253,7 +242,6 @@ export function parseChordPro(content: string): SongAST {
             lines: [],
           };
           break;
-
         case "bridge":
           commitSection();
           currentSection = {
@@ -263,32 +251,35 @@ export function parseChordPro(content: string): SongAST {
           };
           break;
 
-        // Comentários Inline ou Isolados
         case "comment":
         case "comment_italic":
-        case "comment_box":
           const commentLine: LineAST = { type: "comment", text: value };
-          if (currentSection) {
-            currentSection.lines.push(commentLine);
-          } else {
-            sections.push({ type: "comment", lines: [commentLine] });
-          }
+          if (currentSection) currentSection.lines.push(commentLine);
+          else sections.push({ type: "comment", lines: [commentLine] });
+          break;
+
+        case "comment_box":
+          const cbLine: LineAST = { type: "comment_box", text: value };
+          if (currentSection) currentSection.lines.push(cbLine);
+          else sections.push({ type: "comment", lines: [cbLine] });
           break;
 
         case "repeat":
-          const repeatLine: LineAST = {
-            type: "comment",
-            text: value ? `Repetir: ${value}` : "Repetir",
-          };
           if (currentSection) {
-            currentSection.lines.push(repeatLine);
+            currentSection.repeat = value || "2";
           } else {
-            sections.push({ type: "comment", lines: [repeatLine] });
+            sections.push({
+              type: "comment",
+              lines: [
+                { type: "comment_box", text: `Repetir: ${value || "2"}` },
+              ],
+            });
           }
           break;
 
         case "new_song":
           commitSection();
+          sections.push({ type: "new_song", lines: [] });
           break;
 
         case "duration":
@@ -302,13 +293,11 @@ export function parseChordPro(content: string): SongAST {
 
         default:
           if (value) {
-            // Normaliza dinamicamente "ccli_number", "original key" para "ccliNumber", "originalKey", etc.
             const metaKey = name
               .replace(/[-_\s]+([a-zA-Z])/g, (_, letter) =>
                 letter.toUpperCase(),
               )
-              .replace(/\s+/g, ""); // limpa sobras
-
+              .replace(/\s+/g, "");
             metadata[metaKey] = value;
           }
           break;
@@ -321,23 +310,22 @@ export function parseChordPro(content: string): SongAST {
       continue;
     }
 
-    // Ignorar comentários invisíveis (Padrão ChordPro)
-    if (trimmed.startsWith("#") && !isTab) {
-      continue;
-    }
+    if (trimmed.startsWith("#") && !isTab) continue;
 
     let lineType: LineAST["type"] = "lyrics";
     let parsedSegments: SegmentAST[] = [];
 
-    if (isTab || isGrid) {
+    if (isTab) {
       lineType = "tab";
     } else {
       parsedSegments = parseLineSegments(line);
       const textContent = parsedSegments.map((s) => s.text).join("");
-      const onlyBarsAndSpaces = /^[\s|:\-]*$/.test(textContent);
+      // Atualizado para englobar '.' e '%' comuns em grelhas instrumentais
+      const onlyBarsAndSpaces = /^[\s|:\-.%]*$/.test(textContent);
       const hasBars = textContent.includes("|");
 
-      if (onlyBarsAndSpaces && hasBars) {
+      // Se estamos numa grelha, forçamos os acordes a serem uma `chord-section`.
+      if (isGrid || (onlyBarsAndSpaces && hasBars)) {
         lineType = "chord-section";
       }
     }
@@ -390,28 +378,21 @@ export function parseChordPro(content: string): SongAST {
       parsedLine.startBarline = startBarline;
     }
 
-    if (!currentSection) {
-      currentSection = { type: "verse", lines: [] };
-    }
+    if (!currentSection) currentSection = { type: "verse", lines: [] };
     currentSection.lines.push(parsedLine);
   }
 
   commitSection();
-
-  if (!metadata.title) {
-    metadata.title = "Sem Título";
-  }
+  if (!metadata.title) metadata.title = "Sem Título";
 
   return { metadata, sections };
 }
 
-// Para reconstruir o texto padrão, caso necessário
 export function buildChordProText(
   metadata: { [key: string]: string | undefined },
   bodyContent: string,
 ): string {
   const lines: string[] = [];
-
   const primaryKeys = [
     "title",
     "subtitle",

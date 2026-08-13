@@ -8,7 +8,9 @@ import {
   Disc,
   Flame,
   HelpCircle,
+  Info,
   Key,
+  LayoutGrid,
   Music,
   Pause,
   Play,
@@ -21,13 +23,10 @@ import {
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import YouTube, { type YouTubePlayer } from "react-youtube";
 import { chordDictionary } from "../chordpro/chordDictionary";
-import { LineAST, parseChordPro } from "../chordpro/parser";
+import { LineAST, SegmentAST, parseChordPro } from "../chordpro/parser";
 import { transposeChord } from "../chordpro/transpose";
 import { ChordRoll, GuitarDiagram, PianoDiagram } from "./ChordRoll";
 
-// ---------------------------------------------------------------------------
-// Helper: extract YouTube video ID from a URL or raw ID string
-// ---------------------------------------------------------------------------
 const YT_ID_REGEX =
   /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/;
 
@@ -52,38 +51,17 @@ function getDuration(duration: string): string {
 interface ChordProPreviewProps {
   content: string;
   showChords: boolean;
-
-  /** Semitones to transpose. Defaults to 0. */
   transposeVal?: number;
-  /** Capo position on fretboard (0-11). Defaults to 0. */
   capoVal?: number;
-
-  /** Callback to change transpose value. */
   onTransposeChange?: (val: number) => void;
-  /** Callback to change capo value. */
   onCapoChange?: (val: number) => void;
-
-  /** Enable 2-column layout for song body. */
   twoColumnLayout?: boolean;
-
-  /** Font size in px for the body content. */
   fontSize?: number;
-
-  /** Instrument for chord diagrams. */
   instrument?: "guitar" | "piano";
-
-  /** Whether to show chord diagrams in the ChordRoll. */
   showDiagrams?: boolean;
-
-  /** Source file name shown in the footer. */
   fileName?: string;
-
-  // --- YouTube mini player (optional controlled mode) ------------------------
-  /** Whether the YouTube mini player bar is visible (controlled). */
   showYoutubePlayer?: boolean;
-  /** Callback when the player visibility changes. Not used*/
   onShowYoutubePlayerChange?: (show: boolean) => void;
-
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -107,13 +85,11 @@ const ChordProRenderer = React.memo(
     onShowYoutubePlayerChange,
     scrollContainerRef,
   }: ChordProPreviewProps) => {
-    // ── YouTube internal state ──────────────────────────────────────────
     const [ytPlayerRef, setYtPlayerRef] = useState<YouTubePlayer | null>(null);
     const [isPlayingYoutube, setIsPlayingYoutube] = useState(false);
     const [isYoutubeRepeat, setIsYoutubeRepeat] = useState(false);
     const [showYoutubeInternal, setShowYoutubeInternal] = useState(false);
 
-    // Support controlled mode for showYoutubePlayer
     const showYoutubePlayer = showYoutubePlayerProp ?? showYoutubeInternal;
     const setShowYoutubePlayer = useCallback(
       (val: boolean) => {
@@ -123,7 +99,6 @@ const ChordProRenderer = React.memo(
       [onShowYoutubePlayerChange],
     );
 
-    // Keep a ref to isYoutubeRepeat so the onEnd callback always sees the latest value
     const isYoutubeRepeatRef = useRef(isYoutubeRepeat);
     isYoutubeRepeatRef.current = isYoutubeRepeat;
 
@@ -145,7 +120,6 @@ const ChordProRenderer = React.memo(
       return transposeChord(metadata.key || "C", effectiveTranspose);
     }, [metadata.key, effectiveTranspose]);
 
-    // Derive unique chords from the AST if the caller didn't provide them
     const resolvedUniqueChords = useMemo(() => {
       const chords = new Set<string>();
       for (const section of parsedSong.sections) {
@@ -167,7 +141,6 @@ const ChordProRenderer = React.memo(
       return Array.from(chords);
     }, [parsedSong]);
 
-    // ── Chord Dictionary Modal state ──────────────────────────────────
     const [selectedChord, setSelectedChord] = useState<string | null>(null);
     const [modalInstrument, setModalInstrument] = useState<"guitar" | "piano">(
       instrument,
@@ -179,7 +152,7 @@ const ChordProRenderer = React.memo(
     }, [selectedChord]);
 
     const handleChordClick = (chord: string) => {
-      setModalInstrument(instrument); // reset to caller's default each time
+      setModalInstrument(instrument);
       setSelectedChord(chord);
     };
 
@@ -285,7 +258,6 @@ const ChordProRenderer = React.memo(
                 </div>
               </div>
 
-              {/* Informações Auxiliares (Copyright, Duration) */}
               {(metadata.copyright || metadata.duration) && (
                 <div className="flex items-center gap-4 text-[10px] text-neutral-400 dark:text-neutral-500 mt-3 pt-3 border-t border-neutral-100 dark:border-slate-800/50">
                   {metadata.copyright && <span>© {metadata.copyright}</span>}
@@ -295,7 +267,6 @@ const ChordProRenderer = React.memo(
                 </div>
               )}
 
-              {/* ───── Transposition Indicator Banner ───── */}
               {(transposeVal !== 0 || effectiveCapo !== 0) && (
                 <div className="mt-4 bg-indigo-50 dark:bg-indigo-950/40 text-xs px-3 py-2 rounded-xl text-indigo-700 dark:text-indigo-300 flex items-center justify-between border border-indigo-100 dark:border-indigo-950/50 flex-wrap gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -322,7 +293,6 @@ const ChordProRenderer = React.memo(
                         onCapoChange?.(0);
                       }}
                       className="text-[10px] font-bold hover:underline underline-offset-2 uppercase text-indigo-600 dark:text-indigo-400 cursor-pointer"
-                      aria-label="Repor tom e capo originais"
                     >
                       Repor Tom / Capo
                     </button>
@@ -331,7 +301,6 @@ const ChordProRenderer = React.memo(
               )}
             </div>
 
-            {/* ───── Scrollable Chord Visualizer Row ───── */}
             <ChordRoll
               uniqueChords={resolvedUniqueChords}
               transposeVal={transposeVal}
@@ -355,6 +324,64 @@ const ChordProRenderer = React.memo(
                 const isChorus = section.type === "chorus";
                 const isBridge = section.type === "bridge";
 
+                // Suporte à diretiva {new_song}
+                if (section.type === "new_song") {
+                  return (
+                    <div
+                      key={secIdx}
+                      className="w-full my-12 flex items-center justify-center select-none break-before-column"
+                    >
+                      <div className="flex-1 border-t-2 border-slate-200 dark:border-slate-800 border-dashed"></div>
+                      <Music className="w-5 h-5 mx-4 text-slate-300 dark:text-slate-700" />
+                      <div className="flex-1 border-t-2 border-slate-200 dark:border-slate-800 border-dashed"></div>
+                    </div>
+                  );
+                }
+
+                // Grid (Instrumental) Renderer com alinhamento perfeito de compassos
+                if (section.type === "grid") {
+                  const maxMeasures = Math.max(
+                    1,
+                    ...section.lines.map((l) => l.measures?.length || 1),
+                  );
+
+                  return (
+                    <div
+                      key={secIdx}
+                      className={`bg-slate-100/60 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/60 my-6 ${
+                        twoColumnLayout
+                          ? "break-inside-avoid-column inline-block w-full"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                          <span>{section.label || "Instrumental"}</span>
+                        </div>
+                        {section.repeat && (
+                          <span className="text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded uppercase border border-indigo-200 dark:border-indigo-800/50">
+                            Repetir {section.repeat}x
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1.5 font-medium">
+                        {section.lines.map((line, lineIdx) => (
+                          <LineRenderer
+                            key={lineIdx}
+                            line={line}
+                            showChords={showChords}
+                            transpose={effectiveTranspose}
+                            onChordClick={handleChordClick}
+                            maxGridMeasures={maxMeasures}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Verse / Chorus / Bridge
                 if (isChorus || isBridge) {
                   const borderColor = isChorus
                     ? "border-m3-primary/30 dark:border-m3-dark-primary/30"
@@ -369,7 +396,6 @@ const ChordProRenderer = React.memo(
                   return (
                     <div
                       key={secIdx}
-                      data-section-index={secIdx}
                       className={`pl-4 md:pl-6 border-l-2 my-6 ${borderColor} ${
                         twoColumnLayout
                           ? "break-inside-avoid-column inline-block w-full"
@@ -385,6 +411,19 @@ const ChordProRenderer = React.memo(
                         <span>
                           {section.label || (isChorus ? "Refrão" : "Ponte")}
                         </span>
+
+                        {/* Indicador visual de {repeat} */}
+                        {section.repeat && (
+                          <span
+                            className={`ml-2 px-2 py-0.5 rounded text-[10px] font-black border ${
+                              isChorus
+                                ? "bg-blue-100/50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300"
+                                : "bg-amber-100/50 border-amber-200 text-amber-700 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-300"
+                            }`}
+                          >
+                            {section.repeat}x
+                          </span>
+                        )}
                       </div>
                       <div className="space-y-4 font-medium">
                         {section.lines.length === 0 ? (
@@ -409,25 +448,27 @@ const ChordProRenderer = React.memo(
                   );
                 }
 
+                // Tablaturas melhoradas
                 if (section.type === "tab") {
                   return (
                     <div
                       key={secIdx}
-                      data-section-index={secIdx}
-                      className={`bg-m3-sidebar dark:bg-m3-dark-sidebar p-4 rounded-xl border border-m3-border dark:border-m3-dark-border my-4 select-text ${
+                      className={`bg-slate-900 p-4 pt-6 rounded-xl shadow-inner border border-slate-800 my-6 select-text relative group ${
                         twoColumnLayout
                           ? "break-inside-avoid-column inline-block w-full"
                           : ""
                       }`}
                     >
-                      <div className="text-[10px] font-bold text-m3-secondary dark:text-m3-dark-secondary uppercase tracking-wider mb-2 select-none">
+                      <div className="absolute top-0 left-4 -translate-y-1/2 bg-slate-800 text-[10px] font-bold text-slate-300 uppercase tracking-widest px-2 py-0.5 rounded border border-slate-700 shadow-sm select-none">
                         {section.label || "Tablatura"}
                       </div>
-                      <pre className="font-mono text-xs text-m3-text dark:text-m3-dark-text overflow-x-auto leading-relaxed whitespace-pre">
-                        {section.lines
-                          .map((line) => line.text || "")
-                          .join("\n")}
-                      </pre>
+                      <div className="overflow-x-auto no-scrollbar">
+                        <pre className="font-mono text-[13px] md:text-sm text-slate-300 leading-relaxed whitespace-pre drop-shadow-sm">
+                          {section.lines
+                            .map((line) => line.text || "")
+                            .join("\n")}
+                        </pre>
+                      </div>
                     </div>
                   );
                 }
@@ -436,23 +477,16 @@ const ChordProRenderer = React.memo(
                   return (
                     <div
                       key={secIdx}
-                      data-section-index={secIdx}
-                      className={`my-2 select-none pl-3 text-[11px] italic text-m3-secondary/70 dark:text-m3-dark-secondary/70 ${
-                        twoColumnLayout
-                          ? "break-inside-avoid-column inline-block w-full"
-                          : ""
-                      }`}
+                      className={`my-2 select-none pl-3 text-[11px] italic text-m3-secondary/70 dark:text-m3-dark-secondary/70 ${twoColumnLayout ? "break-inside-avoid-column inline-block w-full" : ""}`}
                     >
                       {section.lines.map((l) => l.text).join(", ")}
                     </div>
                   );
                 }
 
-                // Standard verse / general lines fallback
                 return (
                   <div
                     key={secIdx}
-                    data-section-index={secIdx}
                     className={`relative pl-6 sm:pl-8 border-l border-m3-border/30 dark:border-m3-dark-border/30 py-1.5 my-4 ${
                       twoColumnLayout
                         ? "break-inside-avoid-column inline-block w-full"
@@ -466,6 +500,12 @@ const ChordProRenderer = React.memo(
                       <div className="flex items-center gap-1.5 text-[11px] font-bold text-m3-text/60 dark:text-m3-dark-text/60 uppercase tracking-wider mb-3 select-none">
                         <Music className="w-3.5 h-3.5 text-m3-secondary/60 shrink-0" />
                         <span>{section.label}</span>
+
+                        {section.repeat && (
+                          <span className="ml-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-black border border-slate-200 dark:border-slate-700">
+                            {section.repeat}x
+                          </span>
+                        )}
                       </div>
                     )}
                     <div className="space-y-4">
@@ -485,21 +525,28 @@ const ChordProRenderer = React.memo(
             </div>
 
             {/* ───── Footer info & copyrights ───── */}
-            <div className="border-t border-neutral-100 dark:border-zinc-900 pt-6 mt-12 text-center text-[10px] text-neutral-400 dark:text-neutral-500 select-none space-y-1">
-              {metadata.artist && <p>Artista: {metadata.artist}</p>}
+            <div className="border-t border-neutral-100 dark:border-zinc-900 pt-6 mt-12 pb-12 text-center text-[10px] text-neutral-400 dark:text-neutral-500 select-none space-y-1.5">
+              {metadata.artist && <p>Artista Original: {metadata.artist}</p>}
               {metadata.composer && <p>Compositor: {metadata.composer}</p>}
-              {metadata.copyright && <p>© Copyright: {metadata.copyright}</p>}
-              {metadata.album && <p>Álbum: {metadata.album}</p>}
+              {metadata.lyricist && <p>Letra: {metadata.lyricist}</p>}
+              {metadata.arranger && <p>Arranjo: {metadata.arranger}</p>}
+              {metadata.year && <p>Ano: {metadata.year}</p>}
+              {metadata.originalKey && (
+                <p>Tom Original: {metadata.originalKey}</p>
+              )}
+
+              <div className="pt-2 mt-2 border-t border-neutral-50/50 dark:border-zinc-900/50 inline-block">
+                {metadata.copyright && <p>© Copyright: {metadata.copyright}</p>}
+                {metadata.ccli && <p>CCLI: {metadata.ccli}</p>}
+              </div>
+
               {fileName && (
-                <p className="mt-4">
-                  Carregado a partir do ficheiro: {fileName}
-                </p>
+                <p className="mt-4 opacity-50">Ficheiro base: {fileName}</p>
               )}
             </div>
           </div>
         </div>
 
-        {/* ───── Hidden react-youtube embed ───── */}
         {metadata.youtube && showYoutubePlayer && (
           <div className="hidden">
             <YouTube
@@ -507,11 +554,7 @@ const ChordProRenderer = React.memo(
               opts={{
                 height: "0",
                 width: "0",
-                playerVars: {
-                  autoplay: 1,
-                  controls: 0,
-                  disablekb: 1,
-                },
+                playerVars: { autoplay: 1, controls: 0, disablekb: 1 },
               }}
               onReady={(e: { target: YouTubePlayer }) => {
                 setYtPlayerRef(e.target);
@@ -532,7 +575,6 @@ const ChordProRenderer = React.memo(
           </div>
         )}
 
-        {/* ───── YouTube Spotify-like Mini Player Bottom Bar ───── */}
         {showYoutubePlayer && metadata.youtube && (
           <div className="fixed bottom-0 left-0 right-0 h-16 bg-m3-card dark:bg-m3-dark-card border-t border-m3-border dark:border-m3-dark-border shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-[200] px-4 flex items-center justify-between animate-in slide-in-from-bottom-full">
             <div className="flex items-center gap-3">
@@ -570,15 +612,11 @@ const ChordProRenderer = React.memo(
               >
                 <SkipBack className="w-4 h-4" />
               </button>
-
               <button
                 onClick={() => {
                   if (!ytPlayerRef) return;
-                  if (isPlayingYoutube) {
-                    ytPlayerRef.pauseVideo();
-                  } else {
-                    ytPlayerRef.playVideo();
-                  }
+                  if (isPlayingYoutube) ytPlayerRef.pauseVideo();
+                  else ytPlayerRef.playVideo();
                 }}
                 className="w-10 h-10 rounded-full bg-m3-primary text-white flex items-center justify-center hover:opacity-95 shadow-md active:scale-95 transition-all"
               >
@@ -588,7 +626,6 @@ const ChordProRenderer = React.memo(
                   <Play className="w-5 h-5 ml-1" />
                 )}
               </button>
-
               <button
                 onClick={async () => {
                   if (!ytPlayerRef) return;
@@ -596,15 +633,12 @@ const ChordProRenderer = React.memo(
                   ytPlayerRef.seekTo(t + 10, true);
                 }}
                 className="text-m3-secondary hover:text-m3-primary transition-colors active:scale-95"
-                title="Avançar 10s"
               >
                 <SkipForward className="w-4 h-4" />
               </button>
-
               <button
                 onClick={() => setIsYoutubeRepeat((r) => !r)}
                 className={`ml-2 transition-colors active:scale-95 ${isYoutubeRepeat ? "text-m3-primary" : "text-m3-secondary hover:text-m3-text"}`}
-                title="Repetir Áudio"
               >
                 <Repeat className="w-4 h-4" />
               </button>
@@ -618,7 +652,6 @@ const ChordProRenderer = React.memo(
                   setShowYoutubePlayer(false);
                 }}
                 className="p-2 text-m3-secondary hover:text-red-500 transition-colors"
-                title="Fechar Player"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -626,11 +659,9 @@ const ChordProRenderer = React.memo(
           </div>
         )}
 
-        {/* ───── Chord Fingering Dictionary Modal Overlay ───── */}
         {selectedChord && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 select-none animate-in fade-in duration-200">
             <div className="bg-m3-card dark:bg-m3-dark-card border border-m3-border dark:border-m3-dark-border rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col p-6 space-y-4 animate-in zoom-in-95 duration-200">
-              {/* Modal Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-m3-primary dark:text-m3-dark-primary" />
@@ -646,7 +677,6 @@ const ChordProRenderer = React.memo(
                 </button>
               </div>
 
-              {/* Instrument switcher inside modal */}
               <div className="flex bg-m3-sidebar dark:bg-m3-dark-sidebar p-1 rounded-2xl border border-m3-border dark:border-m3-dark-border">
                 <button
                   onClick={() => setModalInstrument("guitar")}
@@ -670,7 +700,6 @@ const ChordProRenderer = React.memo(
                 </button>
               </div>
 
-              {/* Fingering render */}
               <div className="py-4 flex flex-col items-center justify-center min-h-[140px] border border-m3-border/30 dark:border-m3-dark-border/30 rounded-2xl bg-m3-sidebar/30 dark:bg-m3-dark-sidebar/10">
                 {chordFingering ? (
                   modalInstrument === "guitar" && chordFingering.guitar ? (
@@ -707,7 +736,6 @@ const ChordProRenderer = React.memo(
                 )}
               </div>
 
-              {/* Modal Notes representation */}
               {chordFingering?.piano && (
                 <div className="text-center font-mono text-xs text-m3-secondary dark:text-m3-dark-secondary bg-m3-sidebar dark:bg-m3-dark-sidebar py-2 rounded-xl">
                   Notas do Acorde:{" "}
@@ -717,7 +745,6 @@ const ChordProRenderer = React.memo(
                 </div>
               )}
 
-              {/* Close button */}
               <button
                 onClick={() => setSelectedChord(null)}
                 className="w-full bg-m3-sidebar dark:bg-m3-dark-sidebar hover:bg-m3-hover dark:hover:bg-m3-dark-hover text-m3-text dark:text-m3-dark-text text-xs py-3 rounded-2xl border border-m3-border dark:border-m3-dark-border font-bold active:scale-95 transition-all"
@@ -741,12 +768,21 @@ interface LineRendererProps {
   showChords: boolean;
   transpose?: number;
   onChordClick?: (chord: string) => void;
+  maxGridMeasures?: number;
 }
 
 const LineRenderer = React.memo(
-  ({ line, showChords, transpose = 0, onChordClick }: LineRendererProps) => {
+  ({
+    line,
+    showChords,
+    transpose = 0,
+    onChordClick,
+    maxGridMeasures,
+  }: LineRendererProps) => {
     if (line.type === "empty") return <div className="h-2"></div>;
     if (line.type === "comment") return <CommentRenderer line={line} />;
+    if (line.type === "comment_box") return <CommentBoxRenderer line={line} />;
+
     if (line.type === "chord-section")
       return (
         <ChordSectionRenderer
@@ -754,6 +790,7 @@ const LineRenderer = React.memo(
           showChords={showChords}
           transpose={transpose}
           onChordClick={onChordClick}
+          maxMeasures={maxGridMeasures}
         />
       );
 
@@ -774,6 +811,13 @@ const CommentRenderer = React.memo(({ line }: { line: LineAST }) => (
   </div>
 ));
 
+const CommentBoxRenderer = React.memo(({ line }: { line: LineAST }) => (
+  <div className="bg-amber-100 dark:bg-amber-900/30 border-l-4 border-amber-500 text-amber-900 dark:text-amber-200 p-2.5 my-2.5 rounded-r-md text-xs font-bold tracking-wide flex items-center gap-2 shadow-sm max-w-fit">
+    <Info className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-500" />
+    <span>{line.text}</span>
+  </div>
+));
+
 const LyricsRenderer = React.memo(
   ({
     line,
@@ -786,11 +830,11 @@ const LyricsRenderer = React.memo(
     transpose?: number;
     onChordClick?: (chord: string) => void;
   }) => {
-    const segments = line.segments || [];
+    const segments: SegmentAST[] = line.segments || [];
 
     return (
       <div className="flex flex-wrap items-end leading-relaxed">
-        {segments.map((seg: any, segIdx: number) => {
+        {segments.map((seg, segIdx) => {
           const hasChord = !!seg.chord;
           const transposed = hasChord
             ? transposeChord(seg.chord, transpose)
@@ -827,17 +871,20 @@ const LyricsRenderer = React.memo(
   },
 );
 
+// Renderer robusto para suportar alinhamentos exatos via CSS Grid (maxMeasures)
 const ChordSectionRenderer = React.memo(
   ({
     line,
     showChords,
     transpose = 0,
     onChordClick,
+    maxMeasures,
   }: {
-    line: LineAST; // Replace with your actual types
+    line: LineAST;
     showChords: boolean;
     transpose?: number;
     onChordClick?: (chord: string) => void;
+    maxMeasures?: number;
   }) => {
     if (!showChords) return null;
 
@@ -846,56 +893,84 @@ const ChordSectionRenderer = React.memo(
       m.chords.some((c) => c.timing !== undefined && c.timing !== 1),
     );
 
+    const isGridAligned = maxMeasures !== undefined && maxMeasures > 0;
+
     return (
-      <div className="my-1.5 p-1.5 w-full flex flex-wrap items-stretch bg-slate-50/40 dark:bg-slate-900/10 rounded-md border border-slate-200/50 dark:border-slate-800/50">
+      <div className="my-1.5 p-1 w-full flex items-stretch bg-slate-50/80 dark:bg-slate-900/40 rounded-lg border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
         {line.startBarline && (
-          <div className="flex items-center justify-center shrink-0 pr-1">
+          <div className="flex items-center justify-center shrink-0 w-6">
             {renderBarline(line.startBarline)}
           </div>
         )}
 
-        {measures.map((measure, mIdx) => {
-          return (
-            <div
-              key={mIdx}
-              className="flex-1 flex min-w-[120px] items-stretch border-r border-transparent last:border-none"
-            >
-              <div className="flex-1 flex items-center justify-evenly gap-1 px-1">
-                {measure.chords.map((chordSeg, cIdx) => {
-                  const transposed = transposeChord(chordSeg.chord, transpose);
-                  const timing = chordSeg.timing ?? 1;
+        <div
+          className={
+            isGridAligned ? "grid gap-1 flex-1" : "flex flex-wrap flex-1"
+          }
+          style={
+            isGridAligned
+              ? {
+                  gridTemplateColumns: `repeat(${maxMeasures}, minmax(0, 1fr))`,
+                }
+              : undefined
+          }
+        >
+          {measures.map((measure, mIdx) => {
+            return (
+              <div
+                key={mIdx}
+                className={`flex items-stretch border-r border-slate-200/60 dark:border-slate-700/50 last:border-none ${isGridAligned ? "" : "flex-1 min-w-[120px]"}`}
+              >
+                <div className="flex-1 flex items-center justify-evenly gap-1 px-1 py-1">
+                  {measure.chords.map((chordSeg, cIdx) => {
+                    const transposed = transposeChord(
+                      chordSeg.chord,
+                      transpose,
+                    );
+                    const timing = chordSeg.timing ?? 1;
 
-                  return (
-                    <span
-                      key={cIdx}
-                      // SLEEK CHORDS: Flat design, subtle background on hover, no harsh lines
-                      className="flex-1 flex items-center justify-center cursor-pointer rounded transition-colors hover:bg-slate-200/60 dark:hover:bg-slate-700/40 py-1.5 px-1 min-w-max"
-                      style={{ flexGrow: timing }}
-                      onClick={() => onChordClick?.(transposed)}
-                      title={timing !== 1 ? `Duração: ${timing}x` : undefined}
-                    >
-                      <span className="font-bold text-[#0284c7] dark:text-sky-400 font-mono select-none text-[15px] tracking-wide">
-                        {transposed}
-                      </span>
-
-                      {hasTiming && timing !== 1 && (
-                        <span className="ml-0.5 mt-0.5 text-[10px] font-semibold text-indigo-400 dark:text-indigo-500 opacity-80">
-                          {timing}×
+                    return (
+                      <span
+                        key={cIdx}
+                        className="flex-1 flex items-center justify-center cursor-pointer rounded transition-colors hover:bg-white dark:hover:bg-slate-800 py-1.5 px-1 min-w-max shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                        style={{ flexGrow: timing }}
+                        onClick={() => onChordClick?.(transposed)}
+                        title={timing !== 1 ? `Duração: ${timing}x` : undefined}
+                      >
+                        <span className="font-bold text-[#0284c7] dark:text-sky-400 font-mono select-none text-[15px] tracking-wide">
+                          {transposed}
                         </span>
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
 
-              {measure.endBarline && (
-                <div className="flex items-center justify-center shrink-0 px-1">
-                  {renderBarline(measure.endBarline)}
+                        {hasTiming && timing !== 1 && (
+                          <span className="ml-0.5 mt-0.5 text-[10px] font-semibold text-indigo-400 dark:text-indigo-500 opacity-80">
+                            {timing}×
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {measure.endBarline && (
+                  <div className="flex items-center justify-center shrink-0 px-1 w-6 bg-slate-100/50 dark:bg-slate-800/50 rounded-r">
+                    {renderBarline(measure.endBarline)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Se esta linha tiver menos compassos que o maxMeasures, preenchemos as células de grelha em falta */}
+          {isGridAligned &&
+            Array.from({
+              length: Math.max(0, maxMeasures - measures.length),
+            }).map((_, i) => (
+              <div
+                key={`empty-${i}`}
+                className="border-r border-slate-200/60 dark:border-slate-700/50 last:border-none bg-slate-50/30 dark:bg-slate-800/10 rounded-sm"
+              ></div>
+            ))}
+        </div>
       </div>
     );
   },
@@ -912,47 +987,31 @@ function renderBarline(barline: string): React.ReactNode {
   switch (barline) {
     case "|:":
       return (
-        <span
-          className={wrapperStyle}
-          aria-label="Start repeat"
-          title="Start repeat"
-        >
+        <span className={wrapperStyle} title="Start repeat">
           <span className={repeatStyle}>𝄆</span>
         </span>
       );
     case ":|":
       return (
-        <span
-          className={wrapperStyle}
-          aria-label="End repeat"
-          title="End repeat"
-        >
+        <span className={wrapperStyle} title="End repeat">
           <span className={repeatStyle}>𝄇</span>
         </span>
       );
     case "||":
       return (
-        <span
-          className={wrapperStyle}
-          aria-label="Double barline"
-          title="Double barline"
-        >
+        <span className={wrapperStyle} title="Double barline">
           <span className={normalStyle}>‖</span>
         </span>
       );
     case "|]":
       return (
-        <span
-          className={wrapperStyle}
-          aria-label="End of piece"
-          title="End of piece"
-        >
+        <span className={wrapperStyle} title="End of piece">
           <span className={normalStyle}>𝄂</span>
         </span>
       );
     case "|":
       return (
-        <span className={wrapperStyle} aria-label="Barline">
+        <span className={wrapperStyle}>
           <span className={normalStyle}>|</span>
         </span>
       );

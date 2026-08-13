@@ -94,9 +94,6 @@ export interface SyncStatusResponse {
     songs: string;
     folders: string;
     services: string;
-    musicians: string;
-    settings: string;
-    admins: string;
   };
 }
 
