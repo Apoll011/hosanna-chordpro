@@ -11,12 +11,7 @@ export interface MeasureAST {
 
 export interface LineAST {
   type:
-    | "lyrics"
-    | "comment"
-    | "comment_box"
-    | "tab"
-    | "empty"
-    | "chord-section";
+    "lyrics" | "comment" | "comment_box" | "tab" | "empty" | "chord-section";
   text?: string;
   segments?: SegmentAST[];
   measures?: MeasureAST[];

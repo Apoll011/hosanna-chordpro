@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationProps {
   page: number;
@@ -28,14 +28,24 @@ export const Pagination: React.FC<PaginationProps> = ({
       <div className="text-slate-500">
         {total !== undefined && limit !== undefined ? (
           <span>
-            A mostrar <strong className="font-semibold text-slate-800 dark:text-slate-200">{(page - 1) * limit + 1}</strong> a{' '}
+            A mostrar{" "}
+            <strong className="font-semibold text-slate-800 dark:text-slate-200">
+              {(page - 1) * limit + 1}
+            </strong>{" "}
+            a{" "}
             <strong className="font-semibold text-slate-800 dark:text-slate-200">
               {Math.min(page * limit, total)}
-            </strong>{' '}
-            de <strong className="font-semibold text-slate-800 dark:text-slate-200">{total}</strong> resultados
+            </strong>{" "}
+            de{" "}
+            <strong className="font-semibold text-slate-800 dark:text-slate-200">
+              {total}
+            </strong>{" "}
+            resultados
           </span>
         ) : (
-          <span>Página {page} de {totalPages}</span>
+          <span>
+            Página {page} de {totalPages}
+          </span>
         )}
       </div>
 

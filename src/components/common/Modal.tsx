@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect } from "react";
+import { X } from "lucide-react";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -19,30 +19,30 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  maxWidth = 'md',
+  maxWidth = "md",
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleKeyDown);
     }
     return () => {
-      document.body.style.overflow = 'auto';
-      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = "auto";
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   const maxWidthClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
+    sm: "max-w-sm",
+    md: "max-w-md",
+    lg: "max-w-lg",
+    xl: "max-w-xl",
+    "2xl": "max-w-2xl",
   };
 
   return (
@@ -52,7 +52,9 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-m3-border/30 bg-m3-sidebar/30">
-          <h3 className="text-lg font-black text-m3-text uppercase tracking-widest">{title}</h3>
+          <h3 className="text-lg font-black text-m3-text uppercase tracking-widest">
+            {title}
+          </h3>
           <button
             onClick={onClose}
             className="p-2 text-m3-secondary hover:text-m3-text hover:bg-m3-hover rounded-2xl transition-all cursor-pointer"
