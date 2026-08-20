@@ -1,6 +1,7 @@
-import ace from "ace-builds";
+export async function registerChordproMode(aceInstance?: any): Promise<void> {
+  const ace = aceInstance || (await import("ace-builds")).default || (await import("ace-builds"));
+  if (!ace || (ace as any)._chordproModeRegistered) return;
 
-export function registerChordproMode(): void {
   (ace as any).define(
     "ace/mode/chordpro_highlight_rules",
     [
@@ -312,4 +313,6 @@ export function registerChordproMode(): void {
       exports.Mode = Mode;
     },
   );
+
+  (ace as any)._chordproModeRegistered = true;
 }

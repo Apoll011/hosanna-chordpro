@@ -1,9 +1,9 @@
 import { RotateCcw, X } from "lucide-react";
 import React from "react";
-import { EDITOR_THEMES, useEditorSettings } from "../hooks/useEditorSettings";
-import { Button } from "./common/Button";
+import { EDITOR_THEMES, useEditorSettings } from "./useEditorSettings";
+import { Button } from "../components/common/Button";
 
-interface EditorSettingsPanelProps {
+export interface EditorSettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }

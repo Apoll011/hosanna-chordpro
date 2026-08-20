@@ -1,47 +1,54 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import AceEditor from "react-ace";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import type { IAceEditorProps } from "react-ace";
+import { useEditorSettings } from "./useEditorSettings";
+import { ChordFinder } from "./ChordFinder";
+import { registerChordproMode } from "./mode-chordpro";
+import { registerChordproSnippets } from "./snippets-chordpro";
 
-import ace from "ace-builds";
-import "ace-builds/src-noconflict/ext-language_tools";
+// Dynamically lazy-load AceEditor and all Ace themes/extensions on demand
+const LazyAce = React.lazy<React.ComponentType<IAceEditorProps>>(async () => {
+  const [aceModule, reactAceModule] = await Promise.all([
+    import("ace-builds"),
+    import("react-ace"),
+    import("ace-builds/src-noconflict/ext-language_tools"),
+    import("ace-builds/src-noconflict/theme-dracula"),
+    import("ace-builds/src-noconflict/theme-github"),
+    import("ace-builds/src-noconflict/theme-monokai"),
+    import("ace-builds/src-noconflict/theme-solarized_dark"),
+    import("ace-builds/src-noconflict/theme-solarized_light"),
+    import("ace-builds/src-noconflict/theme-textmate"),
+    import("ace-builds/src-noconflict/theme-tomorrow"),
+    import("ace-builds/src-noconflict/theme-tomorrow_night"),
+  ]);
 
-import "ace-builds/src-noconflict/theme-dracula";
-import "ace-builds/src-noconflict/theme-github";
-import "ace-builds/src-noconflict/theme-monokai";
-import "ace-builds/src-noconflict/theme-solarized_dark";
-import "ace-builds/src-noconflict/theme-solarized_light";
-import "ace-builds/src-noconflict/theme-textmate";
-import "ace-builds/src-noconflict/theme-tomorrow";
-import "ace-builds/src-noconflict/theme-tomorrow_night";
+  const ace = (aceModule as any).default || aceModule;
+  const AceEditor = (reactAceModule as any).default || reactAceModule;
 
-import { useEditorSettings } from "../hooks/useEditorSettings";
+  await registerChordproMode(ace);
+  await registerChordproSnippets(ace);
 
-import { ChordFinder } from "@/src/chordpro/editor-ace//ChordFinder";
-import { registerChordproMode } from "@/src/chordpro/editor-ace/mode-chordpro";
-import { registerChordproSnippets } from "@/src/chordpro/editor-ace/snippets-chordpro";
+  const langTools = (ace as any).require("ace/ext/language_tools");
+  if (typeof window !== "undefined" && !(window as any)._chordproCompleterRegistered) {
+    const chordCompleter = {
+      getCompletions: (
+        editor: any,
+        _session: any,
+        _pos: any,
+        _prefix: string,
+        callback: any,
+      ) => {
+        const text = editor.getValue();
+        const chords = ChordFinder.getChords(text);
+        callback(null, chords);
+      },
+    };
 
-registerChordproMode();
-registerChordproSnippets();
+    langTools.addCompleter(chordCompleter);
+    (window as any)._chordproCompleterRegistered = true;
+  }
 
-const langTools = (ace as any).require("ace/ext/language_tools");
-
-if (!(window as any)._chordproCompleterRegistered) {
-  const chordCompleter = {
-    getCompletions: (
-      editor: ace.Ace.Editor,
-      _session: any,
-      _pos: any,
-      _prefix: string,
-      callback: any,
-    ) => {
-      const text = editor.getValue();
-      const chords = ChordFinder.getChords(text);
-      callback(null, chords);
-    },
-  };
-
-  langTools.addCompleter(chordCompleter);
-  (window as any)._chordproCompleterRegistered = true;
-}
+  return { default: AceEditor };
+});
 
 // ---------------------------------------------------------------------------
 // Wrap-in-section helper
@@ -70,7 +77,7 @@ const SECTION_LABELS: Record<
 };
 
 function wrapSelectionInSection(
-  editor: ace.Ace.Editor,
+  editor: any,
   sectionType: SectionType,
 ) {
   const selection = editor.getSelection();
@@ -163,23 +170,25 @@ function EditorContextMenu({
 // ---------------------------------------------------------------------------
 // Main Editor component
 // ---------------------------------------------------------------------------
-interface EditorProps {
+export interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   onSave?: (value: string) => void;
   mode?: string;
   readOnly?: boolean;
+  fallback?: React.ReactNode;
 }
 
-export default function Editor({
+export function Editor({
   value,
   onChange,
   onSave,
   mode = "chordpro",
   readOnly = false,
+  fallback = null,
 }: EditorProps) {
   const { settings } = useEditorSettings();
-  const editorRef = useRef<ace.Ace.Editor | null>(null);
+  const editorRef = useRef<any>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     x: 0,
     y: 0,
@@ -192,31 +201,31 @@ export default function Editor({
     }
   }, []);
 
-  const handleLoad = (editor: ace.Ace.Editor) => {
+  const handleLoad = (editor: any) => {
     editorRef.current = editor;
 
     // Add custom save command
     editor.commands.addCommand({
       name: "save",
       bindKey: { win: "Ctrl-S", mac: "Cmd-S" },
-      exec: (ed: ace.Ace.Editor) => onSave?.(ed.getValue()),
+      exec: (ed: any) => onSave?.(ed.getValue()),
     });
 
     // Wrap-in-section keyboard shortcuts
     editor.commands.addCommand({
       name: "wrapInVerse",
       bindKey: { win: "Alt-V", mac: "Alt-V" },
-      exec: (ed: ace.Ace.Editor) => wrapSelectionInSection(ed, "verse"),
+      exec: (ed: any) => wrapSelectionInSection(ed, "verse"),
     });
     editor.commands.addCommand({
       name: "wrapInChorus",
       bindKey: { win: "Alt-R", mac: "Alt-R" },
-      exec: (ed: ace.Ace.Editor) => wrapSelectionInSection(ed, "chorus"),
+      exec: (ed: any) => wrapSelectionInSection(ed, "chorus"),
     });
     editor.commands.addCommand({
       name: "wrapInBridge",
       bindKey: { win: "Alt-B", mac: "Alt-B" },
-      exec: (ed: ace.Ace.Editor) => wrapSelectionInSection(ed, "bridge"),
+      exec: (ed: any) => wrapSelectionInSection(ed, "bridge"),
     });
 
     // Context menu on right-click when text is selected
@@ -232,27 +241,29 @@ export default function Editor({
 
   return (
     <>
-      <AceEditor
-        mode={mode}
-        theme={settings.theme}
-        width="100%"
-        height="100%"
-        value={value}
-        onChange={onChange}
-        onLoad={handleLoad}
-        readOnly={readOnly}
-        fontSize={settings.fontSize}
-        wrapEnabled={settings.wordWrap}
-        showGutter={settings.showLineNumbers}
-        setOptions={{
-          enableLiveAutocompletion: true,
-          enableBasicAutocompletion: true,
-          enableSnippets: true,
-          showLineNumbers: settings.showLineNumbers,
-          tabSize: 2,
-          useWorker: false,
-        }}
-      />
+      <Suspense fallback={fallback}>
+        <LazyAce
+          mode={mode}
+          theme={settings.theme}
+          width="100%"
+          height="100%"
+          value={value}
+          onChange={onChange}
+          onLoad={handleLoad}
+          readOnly={readOnly}
+          fontSize={settings.fontSize}
+          wrapEnabled={settings.wordWrap}
+          showGutter={settings.showLineNumbers}
+          setOptions={{
+            enableLiveAutocompletion: true,
+            enableBasicAutocompletion: true,
+            enableSnippets: true,
+            showLineNumbers: settings.showLineNumbers,
+            tabSize: 2,
+            useWorker: false,
+          }}
+        />
+      </Suspense>
       <EditorContextMenu
         state={contextMenu}
         onAction={handleContextMenuAction}
@@ -261,3 +272,5 @@ export default function Editor({
     </>
   );
 }
+
+export default Editor;

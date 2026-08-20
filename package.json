@@ -11,14 +11,19 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./editor": {
+      "types": "./dist/editor/index.d.ts",
+      "import": "./dist/editor/index.mjs",
+      "require": "./dist/editor/index.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts --watch --format esm,cjs --dts",
+    "build": "tsup src/index.ts src/editor/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts src/editor/index.ts --watch --format esm,cjs --dts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [],
@@ -28,18 +33,28 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/youtube-player": "^5.5.11",
+    "ace-builds": "^1.44.0",
+    "react-ace": "^15.0.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.2"
   },
   "peerDependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "ace-builds": "^1.44.0",
+    "react-ace": "^15.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ace-builds": {
+      "optional": true
+    },
+    "react-ace": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "ace-builds": "^1.44.0",
     "lucide-react": "^1.28.0",
     "react": "^19.0.0",
-    "react-ace": "^15.0.0",
     "react-dom": "^19.0.0",
     "react-youtube": "^10.1.0"
   },
