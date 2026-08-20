@@ -5,81 +5,105 @@ import { ChordFinder } from "./ChordFinder";
 import { registerChordproMode } from "./mode-chordpro";
 import { registerChordproSnippets } from "./snippets-chordpro";
 
+let aceLoaderPromise: Promise<React.ComponentType<IAceEditorProps>> | null = null;
+
+/**
+ * Preloads Ace Editor, its themes, and ChordPro syntax modes in the background.
+ * Call this after your app finishes loading or in an idle callback so that clicking
+ * a song or opening the editor renders immediately with zero delay.
+ */
+export function preloadEditor(): Promise<React.ComponentType<IAceEditorProps>> {
+  if (!aceLoaderPromise) {
+    aceLoaderPromise = (async () => {
+      try {
+        // 1. First import and initialize ace-builds
+        const aceModule = await import("ace-builds");
+        const ace = (aceModule as any)?.default || aceModule;
+
+        if (typeof window !== "undefined" && ace) {
+          (window as any).ace = ace;
+        }
+
+        // 2. Once window.ace is defined, import react-ace and all themes/extensions
+        const [reactAceModule] = await Promise.all([
+          import("react-ace"),
+          import("ace-builds/src-noconflict/ext-language_tools"),
+          import("ace-builds/src-noconflict/theme-dracula"),
+          import("ace-builds/src-noconflict/theme-github"),
+          import("ace-builds/src-noconflict/theme-monokai"),
+          import("ace-builds/src-noconflict/theme-solarized_dark"),
+          import("ace-builds/src-noconflict/theme-solarized_light"),
+          import("ace-builds/src-noconflict/theme-textmate"),
+          import("ace-builds/src-noconflict/theme-tomorrow"),
+          import("ace-builds/src-noconflict/theme-tomorrow_night"),
+        ]);
+
+        const AceEditor = (reactAceModule as any)?.default || reactAceModule;
+
+        if (ace) {
+          await registerChordproMode(ace);
+          await registerChordproSnippets(ace);
+
+          if (typeof ace.require === "function") {
+            try {
+              const langTools = ace.require("ace/ext/language_tools");
+              if (
+                langTools &&
+                typeof langTools.addCompleter === "function" &&
+                typeof window !== "undefined" &&
+                !(window as any)._chordproCompleterRegistered
+              ) {
+                const chordCompleter = {
+                  getCompletions: (
+                    editor: any,
+                    _session: any,
+                    _pos: any,
+                    _prefix: string,
+                    callback: any,
+                  ) => {
+                    if (!editor || typeof editor.getValue !== "function") {
+                      callback(null, []);
+                      return;
+                    }
+                    const text = editor.getValue();
+                    const chords = ChordFinder.getChords(text);
+                    callback(null, chords);
+                  },
+                };
+
+                langTools.addCompleter(chordCompleter);
+                (window as any)._chordproCompleterRegistered = true;
+              }
+            } catch {
+              // Ignore completer registration errors
+            }
+          }
+        }
+
+        if (!AceEditor) {
+          throw new Error("Failed to resolve AceEditor component");
+        }
+
+        return AceEditor;
+      } catch (error) {
+        console.error("Failed to load Ace editor:", error);
+        aceLoaderPromise = null; // allow retry if failed
+        const ErrorFallback: React.FC<any> = () => (
+          <div className="w-full h-full flex items-center justify-center p-4 text-center text-sm text-red-500 bg-red-50/50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-900/30">
+            Failed to load code editor. Please ensure &apos;ace-builds&apos; and &apos;react-ace&apos; are installed.
+          </div>
+        );
+        return ErrorFallback;
+      }
+    })();
+  }
+  return aceLoaderPromise;
+}
+
 // Dynamically lazy-load AceEditor and all Ace themes/extensions on demand
 const LazyAce = React.lazy<React.ComponentType<IAceEditorProps>>(async () => {
-  try {
-    const [aceModule, reactAceModule] = await Promise.all([
-      import("ace-builds"),
-      import("react-ace"),
-      import("ace-builds/src-noconflict/ext-language_tools"),
-      import("ace-builds/src-noconflict/theme-dracula"),
-      import("ace-builds/src-noconflict/theme-github"),
-      import("ace-builds/src-noconflict/theme-monokai"),
-      import("ace-builds/src-noconflict/theme-solarized_dark"),
-      import("ace-builds/src-noconflict/theme-solarized_light"),
-      import("ace-builds/src-noconflict/theme-textmate"),
-      import("ace-builds/src-noconflict/theme-tomorrow"),
-      import("ace-builds/src-noconflict/theme-tomorrow_night"),
-    ]);
-
-    const ace = (aceModule as any)?.default || aceModule;
-    const AceEditor = (reactAceModule as any)?.default || reactAceModule;
-
-    if (ace) {
-      await registerChordproMode(ace);
-      await registerChordproSnippets(ace);
-
-      if (typeof ace.require === "function") {
-        try {
-          const langTools = ace.require("ace/ext/language_tools");
-          if (
-            langTools &&
-            typeof langTools.addCompleter === "function" &&
-            typeof window !== "undefined" &&
-            !(window as any)._chordproCompleterRegistered
-          ) {
-            const chordCompleter = {
-              getCompletions: (
-                editor: any,
-                _session: any,
-                _pos: any,
-                _prefix: string,
-                callback: any,
-              ) => {
-                if (!editor || typeof editor.getValue !== "function") {
-                  callback(null, []);
-                  return;
-                }
-                const text = editor.getValue();
-                const chords = ChordFinder.getChords(text);
-                callback(null, chords);
-              },
-            };
-
-            langTools.addCompleter(chordCompleter);
-            (window as any)._chordproCompleterRegistered = true;
-          }
-        } catch {
-          // Ignore completer registration errors if language tools not loaded
-        }
-      }
-    }
-
-    if (!AceEditor) {
-      throw new Error("Failed to resolve AceEditor component");
-    }
-
-    return { default: AceEditor };
-  } catch (error) {
-    console.error("Failed to load Ace editor:", error);
-    // Return a fallback component when Ace fails to download/load
-    const ErrorFallback: React.FC<any> = () => (
-      <div className="w-full h-full flex items-center justify-center p-4 text-center text-sm text-red-500 bg-red-50/50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-900/30">
-        Failed to load code editor. Please ensure &apos;ace-builds&apos; and &apos;react-ace&apos; are installed.
-      </div>
-    );
-    return { default: ErrorFallback };
-  }
+  const Component = await preloadEditor();
+  return { default: Component };
 });
 
 // ---------------------------------------------------------------------------

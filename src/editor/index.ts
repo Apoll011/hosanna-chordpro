@@ -1,4 +1,9 @@
-export { Editor, default as default, type EditorProps } from "./Editor";
+export {
+  Editor,
+  default as default,
+  preloadEditor,
+  type EditorProps,
+} from "./Editor";
 export {
   EditorSettingsPanel,
   type EditorSettingsPanelProps,
