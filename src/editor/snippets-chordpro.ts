@@ -1,6 +1,17 @@
 export async function registerChordproSnippets(aceInstance?: any): Promise<void> {
-  const ace = aceInstance || (await import("ace-builds")).default || (await import("ace-builds"));
-  if (!ace || (ace as any)._chordproSnippetsRegistered) return;
+  let ace = aceInstance;
+  if (!ace) {
+    try {
+      const mod = await import("ace-builds");
+      ace = (mod as any).default || mod;
+    } catch {
+      return;
+    }
+  }
+
+  if (!ace || typeof ace.define !== "function" || (ace as any)._chordproSnippetsRegistered) {
+    return;
+  }
 
   (ace as any).define(
     "ace/snippets/chordpro",

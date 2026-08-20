@@ -7,47 +7,79 @@ import { registerChordproSnippets } from "./snippets-chordpro";
 
 // Dynamically lazy-load AceEditor and all Ace themes/extensions on demand
 const LazyAce = React.lazy<React.ComponentType<IAceEditorProps>>(async () => {
-  const [aceModule, reactAceModule] = await Promise.all([
-    import("ace-builds"),
-    import("react-ace"),
-    import("ace-builds/src-noconflict/ext-language_tools"),
-    import("ace-builds/src-noconflict/theme-dracula"),
-    import("ace-builds/src-noconflict/theme-github"),
-    import("ace-builds/src-noconflict/theme-monokai"),
-    import("ace-builds/src-noconflict/theme-solarized_dark"),
-    import("ace-builds/src-noconflict/theme-solarized_light"),
-    import("ace-builds/src-noconflict/theme-textmate"),
-    import("ace-builds/src-noconflict/theme-tomorrow"),
-    import("ace-builds/src-noconflict/theme-tomorrow_night"),
-  ]);
+  try {
+    const [aceModule, reactAceModule] = await Promise.all([
+      import("ace-builds"),
+      import("react-ace"),
+      import("ace-builds/src-noconflict/ext-language_tools"),
+      import("ace-builds/src-noconflict/theme-dracula"),
+      import("ace-builds/src-noconflict/theme-github"),
+      import("ace-builds/src-noconflict/theme-monokai"),
+      import("ace-builds/src-noconflict/theme-solarized_dark"),
+      import("ace-builds/src-noconflict/theme-solarized_light"),
+      import("ace-builds/src-noconflict/theme-textmate"),
+      import("ace-builds/src-noconflict/theme-tomorrow"),
+      import("ace-builds/src-noconflict/theme-tomorrow_night"),
+    ]);
 
-  const ace = (aceModule as any).default || aceModule;
-  const AceEditor = (reactAceModule as any).default || reactAceModule;
+    const ace = (aceModule as any)?.default || aceModule;
+    const AceEditor = (reactAceModule as any)?.default || reactAceModule;
 
-  await registerChordproMode(ace);
-  await registerChordproSnippets(ace);
+    if (ace) {
+      await registerChordproMode(ace);
+      await registerChordproSnippets(ace);
 
-  const langTools = (ace as any).require("ace/ext/language_tools");
-  if (typeof window !== "undefined" && !(window as any)._chordproCompleterRegistered) {
-    const chordCompleter = {
-      getCompletions: (
-        editor: any,
-        _session: any,
-        _pos: any,
-        _prefix: string,
-        callback: any,
-      ) => {
-        const text = editor.getValue();
-        const chords = ChordFinder.getChords(text);
-        callback(null, chords);
-      },
-    };
+      if (typeof ace.require === "function") {
+        try {
+          const langTools = ace.require("ace/ext/language_tools");
+          if (
+            langTools &&
+            typeof langTools.addCompleter === "function" &&
+            typeof window !== "undefined" &&
+            !(window as any)._chordproCompleterRegistered
+          ) {
+            const chordCompleter = {
+              getCompletions: (
+                editor: any,
+                _session: any,
+                _pos: any,
+                _prefix: string,
+                callback: any,
+              ) => {
+                if (!editor || typeof editor.getValue !== "function") {
+                  callback(null, []);
+                  return;
+                }
+                const text = editor.getValue();
+                const chords = ChordFinder.getChords(text);
+                callback(null, chords);
+              },
+            };
 
-    langTools.addCompleter(chordCompleter);
-    (window as any)._chordproCompleterRegistered = true;
+            langTools.addCompleter(chordCompleter);
+            (window as any)._chordproCompleterRegistered = true;
+          }
+        } catch {
+          // Ignore completer registration errors if language tools not loaded
+        }
+      }
+    }
+
+    if (!AceEditor) {
+      throw new Error("Failed to resolve AceEditor component");
+    }
+
+    return { default: AceEditor };
+  } catch (error) {
+    console.error("Failed to load Ace editor:", error);
+    // Return a fallback component when Ace fails to download/load
+    const ErrorFallback: React.FC<any> = () => (
+      <div className="w-full h-full flex items-center justify-center p-4 text-center text-sm text-red-500 bg-red-50/50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-900/30">
+        Failed to load code editor. Please ensure &apos;ace-builds&apos; and &apos;react-ace&apos; are installed.
+      </div>
+    );
+    return { default: ErrorFallback };
   }
-
-  return { default: AceEditor };
 });
 
 // ---------------------------------------------------------------------------
@@ -80,11 +112,22 @@ function wrapSelectionInSection(
   editor: any,
   sectionType: SectionType,
 ) {
-  const selection = editor.getSelection();
-  const range = selection.getRange();
-  const selectedText = editor.session.getTextRange(range);
+  if (!editor || !editor.getSelection || !editor.session) return;
+  if (
+    typeof editor.session.getTextRange !== "function" ||
+    typeof editor.session.replace !== "function"
+  ) {
+    return;
+  }
 
-  if (!selectedText.trim()) return;
+  const selection = editor.getSelection();
+  if (!selection || typeof selection.getRange !== "function") return;
+
+  const range = selection.getRange();
+  if (!range) return;
+
+  const selectedText = editor.session.getTextRange(range);
+  if (!selectedText || !selectedText.trim()) return;
 
   const info = SECTION_LABELS[sectionType];
   const wrapped = `{${info.start}: ${info.defaultLabel}}\n${selectedText}\n{${info.end}}`;
@@ -201,43 +244,55 @@ export function Editor({
     }
   }, []);
 
-  const handleLoad = (editor: any) => {
+  const handleLoad = useCallback((editor: any) => {
+    if (!editor) return;
     editorRef.current = editor;
 
-    // Add custom save command
-    editor.commands.addCommand({
-      name: "save",
-      bindKey: { win: "Ctrl-S", mac: "Cmd-S" },
-      exec: (ed: any) => onSave?.(ed.getValue()),
-    });
+    // Add custom save command if commands API exists
+    if (editor.commands && typeof editor.commands.addCommand === "function") {
+      editor.commands.addCommand({
+        name: "save",
+        bindKey: { win: "Ctrl-S", mac: "Cmd-S" },
+        exec: (ed: any) => {
+          if (ed && typeof ed.getValue === "function") {
+            onSave?.(ed.getValue());
+          }
+        },
+      });
 
-    // Wrap-in-section keyboard shortcuts
-    editor.commands.addCommand({
-      name: "wrapInVerse",
-      bindKey: { win: "Alt-V", mac: "Alt-V" },
-      exec: (ed: any) => wrapSelectionInSection(ed, "verse"),
-    });
-    editor.commands.addCommand({
-      name: "wrapInChorus",
-      bindKey: { win: "Alt-R", mac: "Alt-R" },
-      exec: (ed: any) => wrapSelectionInSection(ed, "chorus"),
-    });
-    editor.commands.addCommand({
-      name: "wrapInBridge",
-      bindKey: { win: "Alt-B", mac: "Alt-B" },
-      exec: (ed: any) => wrapSelectionInSection(ed, "bridge"),
-    });
+      // Wrap-in-section keyboard shortcuts
+      editor.commands.addCommand({
+        name: "wrapInVerse",
+        bindKey: { win: "Alt-V", mac: "Alt-V" },
+        exec: (ed: any) => wrapSelectionInSection(ed, "verse"),
+      });
+      editor.commands.addCommand({
+        name: "wrapInChorus",
+        bindKey: { win: "Alt-R", mac: "Alt-R" },
+        exec: (ed: any) => wrapSelectionInSection(ed, "chorus"),
+      });
+      editor.commands.addCommand({
+        name: "wrapInBridge",
+        bindKey: { win: "Alt-B", mac: "Alt-B" },
+        exec: (ed: any) => wrapSelectionInSection(ed, "bridge"),
+      });
+    }
 
     // Context menu on right-click when text is selected
-    editor.container.addEventListener("contextmenu", (e: MouseEvent) => {
-      const selectedText = editor.getSelectedText();
-      if (selectedText && selectedText.trim()) {
-        e.preventDefault();
-        e.stopPropagation();
-        setContextMenu({ x: e.clientX, y: e.clientY, visible: true });
-      }
-    });
-  };
+    if (editor.container && typeof editor.container.addEventListener === "function") {
+      const handleContextMenu = (e: MouseEvent) => {
+        if (!editor || typeof editor.getSelectedText !== "function") return;
+        const selectedText = editor.getSelectedText();
+        if (selectedText && selectedText.trim()) {
+          e.preventDefault();
+          e.stopPropagation();
+          setContextMenu({ x: e.clientX, y: e.clientY, visible: true });
+        }
+      };
+
+      editor.container.addEventListener("contextmenu", handleContextMenu);
+    }
+  }, [onSave]);
 
   return (
     <>

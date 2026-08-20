@@ -1,6 +1,17 @@
 export async function registerChordproMode(aceInstance?: any): Promise<void> {
-  const ace = aceInstance || (await import("ace-builds")).default || (await import("ace-builds"));
-  if (!ace || (ace as any)._chordproModeRegistered) return;
+  let ace = aceInstance;
+  if (!ace) {
+    try {
+      const mod = await import("ace-builds");
+      ace = (mod as any).default || mod;
+    } catch {
+      return;
+    }
+  }
+
+  if (!ace || typeof ace.define !== "function" || (ace as any)._chordproModeRegistered) {
+    return;
+  }
 
   (ace as any).define(
     "ace/mode/chordpro_highlight_rules",
