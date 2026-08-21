@@ -20,8 +20,10 @@ export class ApiClient {
 
   constructor(url: string) {
     this.baseURL = url;
-    this.token = localStorage.getItem("hosanna_access_token");
-    this.refreshTokenVal = localStorage.getItem("hosanna_refresh_token");
+    if (typeof localStorage !== "undefined") {
+      this.token = localStorage.getItem("hosanna_access_token");
+      this.refreshTokenVal = localStorage.getItem("hosanna_refresh_token");
+    }
   }
 
   public setBaseURL(url: string) {
