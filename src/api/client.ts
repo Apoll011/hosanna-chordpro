@@ -137,7 +137,11 @@ export class ApiClient {
       if (refreshed) {
         // Retry original request with new token
         requestHeaders["Authorization"] = `Bearer ${this.token}`;
-        response = await fetch(url, { ...options, headers: requestHeaders });
+        response = await fetch(url, {
+          ...options,
+          credentials: "include",
+          headers: requestHeaders,
+        });
       } else {
         if (this.onUnauthorizedCallback) {
           this.onUnauthorizedCallback();
@@ -189,6 +193,7 @@ export class ApiClient {
     try {
       const response = await fetch(`${this.baseURL}/auth/refresh`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken: this.refreshTokenVal }),
       });
