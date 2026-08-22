@@ -44,6 +44,8 @@ export interface SongsResponse {
 export interface Folder {
   id: string;
   name: string;
+  color?: string;
+  icon?: string;
   parentId?: string | null;
   songCount?: number;
   folderCount?: number;
