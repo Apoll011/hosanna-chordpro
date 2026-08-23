@@ -276,7 +276,6 @@ function classifySectionLabel(
   rawLabel: string,
 ): { kind: SectionKind; label: string } | null {
   let s = rawLabel.trim().replace(/:$/, "").trim();
-  const numberSuffix = s.match(/\s*(\d+)\s*$/);
   const base = s.replace(/\s*\d+\s*$/, "").trim();
   const normalized = stripAccents(base).toLowerCase();
 
@@ -421,7 +420,6 @@ function classify(
   lines: string[],
   opts: Required<ConversionOptions>,
   effectiveSource: SourceFormat,
-  warnings: string[],
 ): ParsedLine[] {
   const result: ParsedLine[] = [];
   const shouldDehyphenateGlobally =
@@ -633,7 +631,7 @@ export function convertToChordProDetailed(
     opts.source === "auto" ? detectSourceFormat(input) : opts.source;
 
   const lines = input.split("\n");
-  const parsed = classify(lines, opts, detectedSource, warnings);
+  const parsed = classify(lines, opts, detectedSource);
   const chordpro = render(parsed, opts);
   const title = extractTitle(chordpro);
 
