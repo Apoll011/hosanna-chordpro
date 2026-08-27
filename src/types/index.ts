@@ -64,7 +64,6 @@ export interface ServiceElement {
     | "welcome"
     | "scripture"
     | "message"
-    | "reading"
     | "announcement"
     | "custom"
     | "song"
