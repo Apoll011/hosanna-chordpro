@@ -8,18 +8,18 @@
 
 ---
 
-## ✨ Features
+## Features
 
-- 🎼 **AST Parser**: Full-featured ChordPro AST parser supporting verses, choruses, bridges, grids, tabs, barlines, timing directives (`[Am@1.5x]`), repeats, and rich metadata.
-- 🔄 **Transposition Engine**: Interval-safe key transposition and smart capo calculation (`getSuggestedCapo`, `transposeChord`, `transposeNote`).
-- 🎹 **Dynamic Chord Dictionary**: Music theory-driven fingering calculations for piano (keys & pitch classes) and guitar (CAGED barres, open chords, and fret charts).
-- 📝 **Universal Sheet Converter**: Converts plain chord-over-lyric text, Ultimate-Guitar tabs, and CifraClub sheets into valid ChordPro format.
-- 🎨 **Interactive React Renderer**: Beautiful lyric and chord rendering with responsive chord rolls, instrument switching (guitar/piano), YouTube playback synchronization, and print optimization.
-- ⚡ **Ace ChordPro Editor**: Feature-packed code editor component with autocompletion, section wrapping shortcuts (`Alt+V`, `Alt+R`, `Alt+B`), snippets, and customizable visual settings.
+- **AST Parser**: Full-featured ChordPro AST parser supporting verses, choruses, bridges, grids, tabs, barlines, timing directives (`[Am@1.5x]`), repeats, and rich metadata.
+- **Transposition Engine**: Interval-safe key transposition and smart capo calculation (`getSuggestedCapo`, `transposeChord`, `transposeNote`).
+- **Dynamic Chord Dictionary**: Music theory-driven fingering calculations for piano (keys & pitch classes) and guitar (CAGED barres, open chords, and fret charts).
+- **Universal Sheet Converter**: Converts plain chord-over-lyric text, Ultimate-Guitar tabs, and CifraClub sheets into valid ChordPro format.
+- **Interactive React Renderer**: Beautiful lyric and chord rendering with responsive chord rolls, instrument switching (guitar/piano), YouTube playback synchronization, and print optimization.
+- **Ace ChordPro Editor**: Feature-packed code editor component with autocompletion, section wrapping shortcuts (`Alt+V`, `Alt+R`, `Alt+B`), snippets, and customizable visual settings.
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install @hosanna/chordpro
@@ -33,20 +33,20 @@ npm install react react-dom ace-builds react-ace
 
 ---
 
-## 🧩 Modular Architecture
+## Modular Architecture
 
 `@hosanna/chordpro` is organized into 3 modular entry points:
 
-| Entry Point | Description |
-| :--- | :--- |
-| `@hosanna/chordpro/parser` | AST parsing, transposition, chord dictionary, text-to-ChordPro conversion |
-| `@hosanna/chordpro/renderer` | `ChordProRenderer`, `ChordRoll`, `GuitarDiagram`, `PianoDiagram` |
-| `@hosanna/chordpro/editor` | `Editor`, `ChordFinder`, ChordPro Ace modes & snippets |
-| `@hosanna/chordpro` | Re-exports everything from all 3 modules |
+| Entry Point                  | Description                                                               |
+| :--------------------------- | :------------------------------------------------------------------------ |
+| `@hosanna/chordpro/parser`   | AST parsing, transposition, chord dictionary, text-to-ChordPro conversion |
+| `@hosanna/chordpro/renderer` | `ChordProRenderer`, `ChordRoll`, `GuitarDiagram`, `PianoDiagram`          |
+| `@hosanna/chordpro/editor`   | `Editor`, `ChordFinder`, ChordPro Ace modes & snippets                    |
+| `@hosanna/chordpro`          | Re-exports everything from all 3 modules                                  |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Parsing & Transposing ChordPro
 
@@ -158,12 +158,12 @@ import { chordDictionary } from "@hosanna/chordpro/parser";
 const fingering = chordDictionary.getFingering("Cmaj7");
 
 console.log(fingering?.guitar?.frets); // [-1, 3, 2, 0, 0, 0]
-console.log(fingering?.piano?.notes);  // ["C", "E", "G", "B"]
+console.log(fingering?.piano?.notes); // ["C", "E", "G", "B"]
 ```
 
 ---
 
-## 📜 Supported Directives
+## Supported Directives
 
 - **Metadata**: `{title}`, `{subtitle}`, `{artist}`, `{composer}`, `{album}`, `{key}`, `{original_key}`, `{capo}`, `{tempo}`, `{time}`, `{duration}`, `{ccli}`, `{youtube}`
 - **Sections**: `{start_of_verse}` / `{end_of_verse}`, `{start_of_chorus}` / `{end_of_chorus}`, `{start_of_bridge}` / `{end_of_bridge}`, `{start_of_tab}` / `{end_of_tab}`, `{start_of_grid}` / `{end_of_grid}`
@@ -172,6 +172,6 @@ console.log(fingering?.piano?.notes);  // ["C", "E", "G", "B"]
 
 ---
 
-## 📄 License
+## License
 
 Licensed under the [Apache License, Version 2.0](LICENSE.md).
