@@ -1,6 +1,18 @@
-import ace from "ace-builds";
+export async function registerChordproSnippets(aceInstance?: any): Promise<void> {
+  let ace = aceInstance;
+  if (!ace) {
+    try {
+      const mod = await import("ace-builds");
+      ace = (mod as any).default || mod;
+    } catch {
+      return;
+    }
+  }
 
-export function registerChordproSnippets(): void {
+  if (!ace || typeof ace.define !== "function" || (ace as any)._chordproSnippetsRegistered) {
+    return;
+  }
+
   (ace as any).define(
     "ace/snippets/chordpro",
     ["require", "exports", "module"],
@@ -174,4 +186,6 @@ export function registerChordproSnippets(): void {
       exports.scope = "chordpro";
     },
   );
+
+  (ace as any)._chordproSnippetsRegistered = true;
 }

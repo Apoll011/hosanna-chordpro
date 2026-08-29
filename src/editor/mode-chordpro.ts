@@ -1,6 +1,18 @@
-import ace from "ace-builds";
+export async function registerChordproMode(aceInstance?: any): Promise<void> {
+  let ace = aceInstance;
+  if (!ace) {
+    try {
+      const mod = await import("ace-builds");
+      ace = (mod as any).default || mod;
+    } catch {
+      return;
+    }
+  }
 
-export function registerChordproMode(): void {
+  if (!ace || typeof ace.define !== "function" || (ace as any)._chordproModeRegistered) {
+    return;
+  }
+
   (ace as any).define(
     "ace/mode/chordpro_highlight_rules",
     [
@@ -97,7 +109,7 @@ export function registerChordproMode(): void {
               ],
               regex:
                 rStart +
-                "(title|t|subtitle|st|artist|a|composer|lyricist|copyright|album|year|key|k|time|tempo|duration|capo|meta|c|comment|chord|define|song_number|x_[a-zA-Z0-9_]+)" +
+                "(title|t|subtitle|st|artist|a|composer|lyricist|ccli|translator|youtube|chorus|copyright|album|year|key|k|time|tempo|duration|capo|meta|c|comment|chord|define|song_number|x_[a-zA-Z0-9_]+)" +
                 rSep +
                 "(.*?)" +
                 rEnd,
@@ -115,7 +127,10 @@ export function registerChordproMode(): void {
             },
 
             // Chord Section barlines (||, |:, :|, |)
-            { token: "constant.character.barline", regex: "\\|\\||:\\||\\|:|\\|" },
+            {
+              token: "constant.character.barline",
+              regex: "\\|\\||:\\||\\|:|\\|",
+            },
 
             // Inline Annotations e.g. [* Bass fill]
             {
@@ -309,4 +324,6 @@ export function registerChordproMode(): void {
       exports.Mode = Mode;
     },
   );
+
+  (ace as any)._chordproModeRegistered = true;
 }

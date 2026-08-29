@@ -23,3 +23,6 @@ npm version "$VERSION_TYPE" -m "$COMMIT_MSG - v%s"
 git push --follow-tags
 
 echo "Successfully bumped version and pushed to origin!"
+
+npm login
+npm publish
