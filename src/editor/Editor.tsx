@@ -1,6 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { IAceEditorProps } from "react-ace";
-import { useEditorSettings } from "./useEditorSettings";
 import { ChordFinder } from "./ChordFinder";
 import { registerChordproMode } from "./mode-chordpro";
 import { registerChordproSnippets } from "./snippets-chordpro";
@@ -237,10 +236,25 @@ function EditorContextMenu({
 // ---------------------------------------------------------------------------
 // Main Editor component
 // ---------------------------------------------------------------------------
+export interface EditorSettings {
+  theme?: string;
+  fontSize?: number;
+  wordWrap?: boolean;
+  showLineNumbers?: boolean;
+}
+
+const DEFAULT_EDITOR_SETTINGS: Required<EditorSettings> = {
+  theme: "textmate",
+  fontSize: 14,
+  wordWrap: true,
+  showLineNumbers: true,
+};
+
 export interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   onSave?: (value: string) => void;
+  settings?: EditorSettings;
   mode?: string;
   readOnly?: boolean;
   fallback?: React.ReactNode;
@@ -250,11 +264,15 @@ export function Editor({
   value,
   onChange,
   onSave,
+  settings,
   mode = "chordpro",
   readOnly = false,
   fallback = null,
 }: EditorProps) {
-  const { settings } = useEditorSettings();
+  const activeSettings = {
+    ...DEFAULT_EDITOR_SETTINGS,
+    ...settings,
+  };
   const editorRef = useRef<any>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     x: 0,
@@ -323,21 +341,21 @@ export function Editor({
       <Suspense fallback={fallback}>
         <LazyAce
           mode={mode}
-          theme={settings.theme}
+          theme={activeSettings.theme}
           width="100%"
           height="100%"
           value={value}
           onChange={onChange}
           onLoad={handleLoad}
           readOnly={readOnly}
-          fontSize={settings.fontSize}
-          wrapEnabled={settings.wordWrap}
-          showGutter={settings.showLineNumbers}
+          fontSize={activeSettings.fontSize}
+          wrapEnabled={activeSettings.wordWrap}
+          showGutter={activeSettings.showLineNumbers}
           setOptions={{
             enableLiveAutocompletion: true,
             enableBasicAutocompletion: true,
             enableSnippets: true,
-            showLineNumbers: settings.showLineNumbers,
+            showLineNumbers: activeSettings.showLineNumbers,
             tabSize: 2,
             useWorker: false,
           }}

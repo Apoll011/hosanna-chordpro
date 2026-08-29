@@ -22,9 +22,9 @@ import {
 } from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import YouTube, { type YouTubePlayer } from "react-youtube";
-import { chordDictionary } from "../chordpro/chordDictionary";
-import { LineAST, SegmentAST, parseChordPro } from "../chordpro/parser";
-import { transposeChord } from "../chordpro/transpose";
+import { chordDictionary } from "../parser/chordDictionary";
+import { LineAST, SegmentAST, parseChordPro } from "../parser/parser";
+import { transposeChord } from "../parser/transpose";
 import { ChordRoll, GuitarDiagram, PianoDiagram } from "./ChordRoll";
 
 const YT_ID_REGEX =
@@ -48,7 +48,7 @@ function getDuration(duration: string): string {
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
-interface ChordProPreviewProps {
+export interface ChordProPreviewProps {
   content: string;
   showChords: boolean;
   transposeVal?: number;
@@ -1026,4 +1026,5 @@ function renderBarline(barline: string): React.ReactNode {
   }
 }
 
+export { ChordProRenderer };
 export default ChordProRenderer;

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { chordDictionary } from "../chordpro/chordDictionary";
-import { transposeChord } from "../chordpro/transpose";
+import { chordDictionary } from "../parser/chordDictionary";
+import { transposeChord } from "../parser/transpose";
 
 /**
  * Guitar dynamic SVG drawer
@@ -289,7 +289,7 @@ export function PianoDiagram({ highlightKeys }: { highlightKeys: number[] }) {
   );
 }
 
-interface ChordRollProps {
+export interface ChordRollProps {
   uniqueChords: string[];
   transposeVal: number;
   capoVal?: number;
