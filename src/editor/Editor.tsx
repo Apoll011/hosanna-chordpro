@@ -3,6 +3,8 @@ import type { IAceEditorProps } from "react-ace";
 import { ChordFinder } from "./ChordFinder";
 import { registerChordproMode } from "./mode-chordpro";
 import { registerChordproSnippets } from "./snippets-chordpro";
+import { registerFormatShortcut } from "../formatter/integrations/ace";
+import type { FormatResult } from "../formatter/types";
 
 let aceLoaderPromise: Promise<React.ComponentType<IAceEditorProps>> | null = null;
 
@@ -254,6 +256,11 @@ export interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   onSave?: (value: string) => void;
+  /**
+   * Called after a format operation (Ctrl/Cmd+Shift+F) completes.
+   * Provides the FormatResult so the consumer can show toast/notification feedback.
+   */
+  onFormat?: (result: FormatResult) => void;
   settings?: EditorSettings;
   mode?: string;
   readOnly?: boolean;
@@ -264,6 +271,7 @@ export function Editor({
   value,
   onChange,
   onSave,
+  onFormat,
   settings,
   mode = "chordpro",
   readOnly = false,
@@ -318,6 +326,12 @@ export function Editor({
         bindKey: { win: "Alt-B", mac: "Alt-B" },
         exec: (ed: any) => wrapSelectionInSection(ed, "bridge"),
       });
+
+      // Format document shortcut (Ctrl/Cmd + Shift + F)
+      // Formats selection if active, otherwise formats the whole document.
+      registerFormatShortcut(editor, (result) => {
+        onFormat?.(result);
+      });
     }
 
     // Context menu on right-click when text is selected
@@ -334,7 +348,7 @@ export function Editor({
 
       editor.container.addEventListener("contextmenu", handleContextMenu);
     }
-  }, [onSave]);
+  }, [onSave, onFormat]);
 
   return (
     <>
