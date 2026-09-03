@@ -5,6 +5,7 @@
 
 import {
   BookOpen,
+  ChevronDown,
   Disc,
   Flame,
   HelpCircle,
@@ -23,7 +24,12 @@ import {
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import YouTube, { type YouTubePlayer } from "react-youtube";
 import { chordDictionary } from "../parser/chordDictionary";
-import { LineAST, SegmentAST, parseChordPro } from "../parser/parser";
+import {
+  LineAST,
+  SegmentAST,
+  parseChordProDocument,
+  selectVersion,
+} from "../parser/parser";
 import { transposeChord } from "../parser/transpose";
 import { ChordRoll, GuitarDiagram, PianoDiagram } from "./ChordRoll";
 
@@ -63,6 +69,8 @@ export interface ChordProPreviewProps {
   showYoutubePlayer?: boolean;
   onShowYoutubePlayerChange?: (show: boolean) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  selectedVersionId?: string;
+  onSelectVersion?: (versionId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,11 +92,16 @@ const ChordProRenderer = React.memo(
     showYoutubePlayer: showYoutubePlayerProp,
     onShowYoutubePlayerChange,
     scrollContainerRef,
+    selectedVersionId: selectedVersionIdProp,
+    onSelectVersion,
   }: ChordProPreviewProps) => {
     const [ytPlayerRef, setYtPlayerRef] = useState<YouTubePlayer | null>(null);
     const [isPlayingYoutube, setIsPlayingYoutube] = useState(false);
     const [isYoutubeRepeat, setIsYoutubeRepeat] = useState(false);
     const [showYoutubeInternal, setShowYoutubeInternal] = useState(false);
+    const [internalVersionId, setInternalVersionId] = useState<string>("default");
+
+    const activeVersionId = selectedVersionIdProp ?? internalVersionId;
 
     const showYoutubePlayer = showYoutubePlayerProp ?? showYoutubeInternal;
     const setShowYoutubePlayer = useCallback(
@@ -102,11 +115,32 @@ const ChordProRenderer = React.memo(
     const isYoutubeRepeatRef = useRef(isYoutubeRepeat);
     isYoutubeRepeatRef.current = isYoutubeRepeat;
 
-    const parsedSong = useMemo(() => {
-      return parseChordPro(content);
+    const parsedDocument = useMemo(() => {
+      return parseChordProDocument(content);
     }, [content]);
 
+    const activeVersion = useMemo(() => {
+      return selectVersion(parsedDocument, activeVersionId);
+    }, [parsedDocument, activeVersionId]);
+
+    const parsedSong = useMemo(() => {
+      return {
+        id: activeVersion.id,
+        name: activeVersion.name,
+        metadata: activeVersion.metadata,
+        sections: activeVersion.body,
+      };
+    }, [activeVersion]);
+
     const { metadata } = parsedSong;
+
+    const handleVersionChange = useCallback(
+      (id: string) => {
+        setInternalVersionId(id);
+        onSelectVersion?.(id);
+      },
+      [onSelectVersion],
+    );
 
     const isGuitar = instrument === "guitar";
     const effectiveCapo = isGuitar ? capoVal : 0;
@@ -167,9 +201,29 @@ const ChordProRenderer = React.memo(
             <div className="mb-6 border-b border-neutral-100 dark:border-slate-800 pb-5 select-none">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
-                    {metadata.title}
-                  </h2>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                      {metadata.title}
+                    </h2>
+                    {parsedDocument.variants.length > 0 && (
+                      <div className="relative inline-flex items-center">
+                        <select
+                          value={activeVersion.id}
+                          onChange={(e) => handleVersionChange(e.target.value)}
+                          className="appearance-none bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold pl-2.5 pr-7 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-xs transition-colors"
+                          title="Selecionar versão da música"
+                        >
+                          <option value="default">{parsedDocument.default.name || "Padrão"}</option>
+                          {parsedDocument.variants.map((variant) => (
+                            <option key={variant.id} value={variant.id}>
+                              {variant.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-indigo-500 pointer-events-none absolute right-2" />
+                      </div>
+                    )}
+                  </div>
 
                   {metadata.subtitle && (
                     <h3 className="text-[15px] font-medium text-neutral-600 dark:text-neutral-400 mt-1">

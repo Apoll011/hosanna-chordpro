@@ -39,7 +39,8 @@
   "scripts": {
     "build": "tsup src/index.ts src/parser/index.ts src/renderer/index.ts src/editor/index.ts src/formatter/index.ts --format esm,cjs --dts",
     "dev": "tsup src/index.ts src/parser/index.ts src/renderer/index.ts src/editor/index.ts src/formatter/index.ts --watch --format esm,cjs --dts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
   },
   "keywords": [],
   "author": "",

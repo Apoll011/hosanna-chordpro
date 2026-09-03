@@ -38,6 +38,8 @@ const DIRECTIVE_ALIAS_MAP: Record<string, string> = {
   time_signature: "time",
   timesignature: "time",
   original_key: "original_key",
+  sov_ver: "start_of_version",
+  eov_ver: "end_of_version",
 };
 
 /** Known standard directive names (canonical). Used for unknown-directive warnings. */
@@ -54,6 +56,7 @@ const KNOWN_DIRECTIVES = new Set([
   "start_of_tab", "end_of_tab",
   "start_of_grid", "end_of_grid",
   "start_of_part", "end_of_part",
+  "start_of_version", "end_of_version",
   "new_song", "new_page", "column_break",
   "define", "chord",
   "textfont", "textsize", "textcolour", "textcolor",

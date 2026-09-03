@@ -241,6 +241,8 @@ export async function registerChordproMode(aceInstance?: any): Promise<void> {
             b: "bridge",
             t: "tab",
             g: "grid",
+            ver: "version",
+            version: "version",
           };
           return map[name.toLowerCase()] || name.toLowerCase();
         };

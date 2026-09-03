@@ -25,7 +25,22 @@ export interface SectionAST {
   repeat?: string;
 }
 
+export interface ChordProVersion {
+  id: string;
+  name: string;
+  metadata: Record<string, string>;
+  body: SectionAST[];
+}
+
+export interface ChordProDocument {
+  default: ChordProVersion;
+  variants: ChordProVersion[];
+  errors: string[];
+}
+
 export interface SongAST {
+  id?: string;
+  name?: string;
   metadata: {
     title?: string;
     subtitle?: string;
@@ -45,6 +60,9 @@ export interface SongAST {
     [key: string]: string | undefined;
   };
   sections: SectionAST[];
+  default?: ChordProVersion;
+  variants?: ChordProVersion[];
+  errors?: string[];
 }
 
 const TIMING_REGEX = /^(.+?)@([0-9]*\.?[0-9]+)x$/;
@@ -96,23 +114,65 @@ export function parseLineSegments(lineText: string): SegmentAST[] {
   return segments;
 }
 
-export function parseChordPro(content: string): SongAST {
+export function slugifyVariantName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-") // replace non-alphanumeric chars with hyphen
+    .replace(/^-+|-+$/g, ""); // remove leading/trailing hyphens
+}
+
+export function parseChordProDocument(content: string): ChordProDocument {
   const lines = content.split(/\r?\n/);
-  const metadata: { [key: string]: string } = {};
-  const sections: SectionAST[] = [];
+  const errors: string[] = [];
 
-  let currentSection: SectionAST | null = null;
-  let isTab = false;
-  let isGrid = false;
-  let lastChorusLines: LineAST[] = [];
+  const defaultVersion: ChordProVersion = {
+    id: "default",
+    name: "Padrão",
+    metadata: {},
+    body: [],
+  };
 
-  const commitSection = () => {
-    if (currentSection) {
-      sections.push(currentSection);
-      if (currentSection.type === "chorus") {
-        lastChorusLines = [...currentSection.lines];
+  const variants: ChordProVersion[] = [];
+
+  interface VersionContext {
+    isDefault: boolean;
+    id: string;
+    name: string;
+    metadata: Record<string, string>;
+    sections: SectionAST[];
+    currentSection: SectionAST | null;
+    isTab: boolean;
+    isGrid: boolean;
+    lastChorusLines: LineAST[];
+    startLineNumber: number;
+  }
+
+  const defaultContext: VersionContext = {
+    isDefault: true,
+    id: "default",
+    name: "Padrão",
+    metadata: {},
+    sections: [],
+    currentSection: null,
+    isTab: false,
+    isGrid: false,
+    lastChorusLines: [],
+    startLineNumber: 1,
+  };
+
+  let activeVariantContext: VersionContext | null = null;
+  const seenVariantIds = new Set<string>();
+
+  const commitSectionInContext = (ctx: VersionContext) => {
+    if (ctx.currentSection) {
+      ctx.sections.push(ctx.currentSection);
+      if (ctx.currentSection.type === "chorus") {
+        ctx.lastChorusLines = [...ctx.currentSection.lines];
       }
-      currentSection = null;
+      ctx.currentSection = null;
     }
   };
 
@@ -144,9 +204,15 @@ export function parseChordPro(content: string): SongAST {
     "time signature": "time",
     original_key: "original_key",
     "original key": "original_key",
+    sov_ver: "start_of_version",
+    start_of_version: "start_of_version",
+    end_of_version: "end_of_version",
+    eov_ver: "end_of_version",
   };
 
-  for (let line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNumber = i + 1;
     const trimmed = line.trim();
 
     if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
@@ -163,83 +229,161 @@ export function parseChordPro(content: string): SongAST {
       const lowerName = rawName.toLowerCase();
       const name = aliasMap[lowerName] || lowerName;
 
+      // Handle version directives
+      if (name === "start_of_version") {
+        if (activeVariantContext) {
+          errors.push(
+            `Line ${lineNumber}: Nested version block detected. "{start_of_version}" cannot be inside another version block.`,
+          );
+          continue;
+        }
+
+        const versionName = value.trim();
+        if (!versionName) {
+          errors.push(
+            `Line ${lineNumber}: Empty version name in "{start_of_version}".`,
+          );
+          continue;
+        }
+
+        const variantId = slugifyVariantName(versionName);
+        if (!variantId || variantId === "default" || seenVariantIds.has(variantId)) {
+          errors.push(
+            `Line ${lineNumber}: Duplicate or invalid variant identifier "${variantId || versionName}".`,
+          );
+          continue;
+        }
+
+        // Commit pending section in outer context before switching
+        commitSectionInContext(defaultContext);
+
+        seenVariantIds.add(variantId);
+
+        // Previous resolved metadata
+        const previousMetadata =
+          variants.length > 0
+            ? variants[variants.length - 1].metadata
+            : defaultContext.metadata;
+
+        activeVariantContext = {
+          isDefault: false,
+          id: variantId,
+          name: versionName,
+          metadata: { ...previousMetadata },
+          sections: [],
+          currentSection: null,
+          isTab: false,
+          isGrid: false,
+          lastChorusLines: [],
+          startLineNumber: lineNumber,
+        };
+        continue;
+      }
+
+      if (name === "end_of_version") {
+        if (!activeVariantContext) {
+          errors.push(
+            `Line ${lineNumber}: Unexpected "{end_of_version}" without an active version block.`,
+          );
+          continue;
+        }
+
+        commitSectionInContext(activeVariantContext);
+        if (!activeVariantContext.metadata.title) {
+          activeVariantContext.metadata.title = defaultContext.metadata.title || "Sem Título";
+        }
+
+        variants.push({
+          id: activeVariantContext.id,
+          name: activeVariantContext.name,
+          metadata: activeVariantContext.metadata,
+          body: activeVariantContext.sections,
+        });
+
+        activeVariantContext = null;
+        continue;
+      }
+
+      // Normal directive dispatch within the active context
+      const ctx = activeVariantContext ?? defaultContext;
+
       switch (name) {
         case "start_of_chorus":
-          commitSection();
-          currentSection = {
+          commitSectionInContext(ctx);
+          ctx.currentSection = {
             type: "chorus",
             label: value || "Refrão",
             lines: [],
           };
           break;
         case "start_of_verse":
-          commitSection();
-          currentSection = {
+          commitSectionInContext(ctx);
+          ctx.currentSection = {
             type: "verse",
             label: value || "Verso",
             lines: [],
           };
           break;
         case "start_of_bridge":
-          commitSection();
-          currentSection = {
+          commitSectionInContext(ctx);
+          ctx.currentSection = {
             type: "bridge",
             label: value || "Ponte",
             lines: [],
           };
           break;
         case "start_of_tab":
-          commitSection();
-          isTab = true;
-          currentSection = {
+          commitSectionInContext(ctx);
+          ctx.isTab = true;
+          ctx.currentSection = {
             type: "tab",
             label: value || "Tablatura",
             lines: [],
           };
           break;
         case "start_of_grid":
-          commitSection();
-          isGrid = true;
-          currentSection = { type: "grid", label: value || "Grid", lines: [] };
+          commitSectionInContext(ctx);
+          ctx.isGrid = true;
+          ctx.currentSection = { type: "grid", label: value || "Grid", lines: [] };
           break;
 
         case "end_of_chorus":
-          if (currentSection?.type === "chorus") commitSection();
+          if (ctx.currentSection?.type === "chorus") commitSectionInContext(ctx);
           break;
         case "end_of_verse":
-          if (currentSection?.type === "verse") commitSection();
+          if (ctx.currentSection?.type === "verse") commitSectionInContext(ctx);
           break;
         case "end_of_bridge":
-          if (currentSection?.type === "bridge") commitSection();
+          if (ctx.currentSection?.type === "bridge") commitSectionInContext(ctx);
           break;
         case "end_of_tab":
-          isTab = false;
-          if (currentSection?.type === "tab") commitSection();
+          ctx.isTab = false;
+          if (ctx.currentSection?.type === "tab") commitSectionInContext(ctx);
           break;
         case "end_of_grid":
-          isGrid = false;
-          if (currentSection?.type === "grid") commitSection();
+          ctx.isGrid = false;
+          if (ctx.currentSection?.type === "grid") commitSectionInContext(ctx);
           break;
 
         case "chorus":
-          commitSection();
-          sections.push({
+          commitSectionInContext(ctx);
+          ctx.sections.push({
             type: "chorus",
             label: value || "Refrão",
-            lines: [...lastChorusLines],
+            lines: [...ctx.lastChorusLines],
           });
           break;
         case "verse":
-          commitSection();
-          currentSection = {
+          commitSectionInContext(ctx);
+          ctx.currentSection = {
             type: "verse",
             label: value || "Verso",
             lines: [],
           };
           break;
         case "bridge":
-          commitSection();
-          currentSection = {
+          commitSectionInContext(ctx);
+          ctx.currentSection = {
             type: "bridge",
             label: value || "Ponte",
             lines: [],
@@ -249,21 +393,21 @@ export function parseChordPro(content: string): SongAST {
         case "comment":
         case "comment_italic":
           const commentLine: LineAST = { type: "comment", text: value };
-          if (currentSection) currentSection.lines.push(commentLine);
-          else sections.push({ type: "comment", lines: [commentLine] });
+          if (ctx.currentSection) ctx.currentSection.lines.push(commentLine);
+          else ctx.sections.push({ type: "comment", lines: [commentLine] });
           break;
 
         case "comment_box":
           const cbLine: LineAST = { type: "comment_box", text: value };
-          if (currentSection) currentSection.lines.push(cbLine);
-          else sections.push({ type: "comment", lines: [cbLine] });
+          if (ctx.currentSection) ctx.currentSection.lines.push(cbLine);
+          else ctx.sections.push({ type: "comment", lines: [cbLine] });
           break;
 
         case "repeat":
-          if (currentSection) {
-            currentSection.repeat = value || "2";
+          if (ctx.currentSection) {
+            ctx.currentSection.repeat = value || "2";
           } else {
-            sections.push({
+            ctx.sections.push({
               type: "comment",
               lines: [
                 { type: "comment_box", text: `Repetir: ${value || "2"}` },
@@ -273,16 +417,16 @@ export function parseChordPro(content: string): SongAST {
           break;
 
         case "new_song":
-          commitSection();
-          sections.push({ type: "new_song", lines: [] });
+          commitSectionInContext(ctx);
+          ctx.sections.push({ type: "new_song", lines: [] });
           break;
 
         case "duration":
           if (/^\d{1,2}:\d{2}$/.test(value)) {
             const [minutes, seconds] = value.split(":").map(Number);
-            metadata["duration"] = (minutes * 60 + seconds).toString();
+            ctx.metadata["duration"] = (minutes * 60 + seconds).toString();
           } else {
-            metadata["duration"] = value;
+            ctx.metadata["duration"] = value;
           }
           break;
 
@@ -293,24 +437,26 @@ export function parseChordPro(content: string): SongAST {
                 letter.toUpperCase(),
               )
               .replace(/\s+/g, "");
-            metadata[metaKey] = value;
+            ctx.metadata[metaKey] = value;
           }
           break;
       }
       continue;
     }
 
+    const ctx = activeVariantContext ?? defaultContext;
+
     if (trimmed === "") {
-      if (currentSection) currentSection.lines.push({ type: "empty" });
+      if (ctx.currentSection) ctx.currentSection.lines.push({ type: "empty" });
       continue;
     }
 
-    if (trimmed.startsWith("#") && !isTab) continue;
+    if (trimmed.startsWith("#") && !ctx.isTab) continue;
 
     let lineType: LineAST["type"] = "lyrics";
     let parsedSegments: SegmentAST[] = [];
 
-    if (isTab) {
+    if (ctx.isTab) {
       lineType = "tab";
     } else {
       parsedSegments = parseLineSegments(line);
@@ -320,7 +466,7 @@ export function parseChordPro(content: string): SongAST {
       const hasBars = textContent.includes("|");
 
       // Se estamos numa grelha, forçamos os acordes a serem uma `chord-section`.
-      if (isGrid || (onlyBarsAndSpaces && hasBars)) {
+      if (ctx.isGrid || (onlyBarsAndSpaces && hasBars)) {
         lineType = "chord-section";
       }
     }
@@ -339,8 +485,8 @@ export function parseChordPro(content: string): SongAST {
       let hasSeenChord = false;
       let startBarlineFound = false;
 
-      for (let i = 0; i < parsedSegments.length; i++) {
-        const seg = parsedSegments[i];
+      for (let sIdx = 0; sIdx < parsedSegments.length; sIdx++) {
+        const seg = parsedSegments[sIdx];
         if (seg.chord) {
           currentChords.push({
             chord: seg.chord,
@@ -352,8 +498,8 @@ export function parseChordPro(content: string): SongAST {
 
         const barlineMatches = seg.text.match(/\|\||:\||\|:|\|/g);
         if (barlineMatches) {
-          for (let j = 0; j < barlineMatches.length; j++) {
-            const b = barlineMatches[j];
+          for (let bIdx = 0; bIdx < barlineMatches.length; bIdx++) {
+            const b = barlineMatches[bIdx];
             if (!hasSeenChord && !startBarlineFound) {
               startBarline = b;
               startBarlineFound = true;
@@ -373,14 +519,64 @@ export function parseChordPro(content: string): SongAST {
       parsedLine.startBarline = startBarline;
     }
 
-    if (!currentSection) currentSection = { type: "verse", lines: [] };
-    currentSection.lines.push(parsedLine);
+    if (!ctx.currentSection) ctx.currentSection = { type: "verse", lines: [] };
+    ctx.currentSection.lines.push(parsedLine);
   }
 
-  commitSection();
-  if (!metadata.title) metadata.title = "Sem Título";
+  // Check if file ended while a variant is still open
+  if (activeVariantContext) {
+    errors.push(
+      `File ended while variant "${activeVariantContext.name}" (started at line ${activeVariantContext.startLineNumber}) was still open. Missing "{end_of_version}".`,
+    );
+    commitSectionInContext(activeVariantContext);
+    if (!activeVariantContext.metadata.title) {
+      activeVariantContext.metadata.title = defaultContext.metadata.title || "Sem Título";
+    }
+    variants.push({
+      id: activeVariantContext.id,
+      name: activeVariantContext.name,
+      metadata: activeVariantContext.metadata,
+      body: activeVariantContext.sections,
+    });
+  }
 
-  return { metadata, sections };
+  commitSectionInContext(defaultContext);
+  if (!defaultContext.metadata.title) {
+    defaultContext.metadata.title = "Sem Título";
+  }
+
+  defaultVersion.metadata = defaultContext.metadata;
+  defaultVersion.body = defaultContext.sections;
+
+  return {
+    default: defaultVersion,
+    variants,
+    errors,
+  };
+}
+
+export function selectVersion(
+  document: ChordProDocument,
+  versionId?: string,
+): ChordProVersion {
+  if (!versionId || versionId === "default") {
+    return document.default;
+  }
+  const found = document.variants.find((v) => v.id === versionId);
+  return found || document.default;
+}
+
+export function parseChordPro(content: string): SongAST {
+  const doc = parseChordProDocument(content);
+  return {
+    id: doc.default.id,
+    name: doc.default.name,
+    metadata: doc.default.metadata,
+    sections: doc.default.body,
+    default: doc.default,
+    variants: doc.variants,
+    errors: doc.errors,
+  };
 }
 
 export function buildChordProText(
