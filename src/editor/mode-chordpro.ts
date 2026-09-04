@@ -113,7 +113,7 @@ export async function registerChordproMode(aceInstance?: any): Promise<void> {
               ],
               regex:
                 rStart +
-                "(title|t|subtitle|st|artist|a|composer|lyricist|song_number|ccli|translator|youtube|chorus|copyright|album|year|key|k|original_key|time|tempo|duration|capo|meta|c|comment|comment_box|cb|repeat|chord|define|x_[a-zA-Z0-9_]+)" +
+                "(title|t|subtitle|st|artist|a|composer|lyricist|song_number|ccli|translator|youtube|chorus|copyright|album|year|key|k|original_key|time|tempo|duration|capo|meta|c|comment|comment_box|ci|comment_italic|cb|repeat|chord|define|x_[a-zA-Z0-9_]+)" +
                 rSep +
                 "(.*?)" +
                 rEnd,
