@@ -27,14 +27,6 @@ import {
 import { transposeChord } from "../parser/transpose";
 import { ChordRoll, GuitarDiagram, PianoDiagram } from "./ChordRoll";
 
-const YT_ID_REGEX =
-  /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/;
-
-function extractYoutubeId(urlOrId: string): string {
-  const match = urlOrId.match(YT_ID_REGEX);
-  return match?.[1] || urlOrId;
-}
-
 function getDuration(duration: string): string {
   const seconds = Number(duration);
 
