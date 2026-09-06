@@ -314,7 +314,7 @@ function TransposeModal({
   }, [visible, currentKey]);
 
   useEffect(() => {
-    const handleEsc = (e) => {
+    const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     if (visible) document.addEventListener("keydown", handleEsc);
