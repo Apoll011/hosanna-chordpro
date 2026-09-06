@@ -13,16 +13,10 @@ import {
   Key,
   LayoutGrid,
   Music,
-  Pause,
-  Play,
-  Repeat,
-  SkipBack,
-  SkipForward,
   User,
   X,
 } from "lucide-react";
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import YouTube, { type YouTubePlayer } from "react-youtube";
+import React, { useCallback, useMemo, useState } from "react";
 import { chordDictionary } from "../parser/chordDictionary";
 import {
   LineAST,
@@ -66,8 +60,6 @@ export interface ChordProPreviewProps {
   instrument?: "guitar" | "piano";
   showDiagrams?: boolean;
   fileName?: string;
-  showYoutubePlayer?: boolean;
-  onShowYoutubePlayerChange?: (show: boolean) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   selectedVersionId?: string;
   onSelectVersion?: (versionId: string) => void;
@@ -89,31 +81,14 @@ const ChordProRenderer = React.memo(
     instrument = "guitar",
     showDiagrams = false,
     fileName,
-    showYoutubePlayer: showYoutubePlayerProp,
-    onShowYoutubePlayerChange,
     scrollContainerRef,
     selectedVersionId: selectedVersionIdProp,
     onSelectVersion,
   }: ChordProPreviewProps) => {
-    const [ytPlayerRef, setYtPlayerRef] = useState<YouTubePlayer | null>(null);
-    const [isPlayingYoutube, setIsPlayingYoutube] = useState(false);
-    const [isYoutubeRepeat, setIsYoutubeRepeat] = useState(false);
-    const [showYoutubeInternal, setShowYoutubeInternal] = useState(false);
-    const [internalVersionId, setInternalVersionId] = useState<string>("default");
+    const [internalVersionId, setInternalVersionId] =
+      useState<string>("default");
 
     const activeVersionId = selectedVersionIdProp ?? internalVersionId;
-
-    const showYoutubePlayer = showYoutubePlayerProp ?? showYoutubeInternal;
-    const setShowYoutubePlayer = useCallback(
-      (val: boolean) => {
-        setShowYoutubeInternal(val);
-        onShowYoutubePlayerChange?.(val);
-      },
-      [onShowYoutubePlayerChange],
-    );
-
-    const isYoutubeRepeatRef = useRef(isYoutubeRepeat);
-    isYoutubeRepeatRef.current = isYoutubeRepeat;
 
     const parsedDocument = useMemo(() => {
       return parseChordProDocument(content);
@@ -213,7 +188,9 @@ const ChordProRenderer = React.memo(
                           className="appearance-none bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold pl-2.5 pr-7 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-xs transition-colors"
                           title="Selecionar versão da música"
                         >
-                          <option value="default">{parsedDocument.default.name || "Padrão"}</option>
+                          <option value="default">
+                            {parsedDocument.default.name || "Padrão"}
+                          </option>
                           {parsedDocument.variants.map((variant) => (
                             <option key={variant.id} value={variant.id}>
                               {variant.name}
@@ -600,118 +577,6 @@ const ChordProRenderer = React.memo(
             </div>
           </div>
         </div>
-
-        {metadata.youtube && showYoutubePlayer && (
-          <div className="hidden">
-            <YouTube
-              videoId={extractYoutubeId(metadata.youtube)}
-              opts={{
-                height: "0",
-                width: "0",
-                playerVars: { autoplay: 1, controls: 0, disablekb: 1 },
-              }}
-              onReady={(e: { target: YouTubePlayer }) => {
-                setYtPlayerRef(e.target);
-                e.target.pauseVideo();
-                setIsPlayingYoutube(false);
-              }}
-              onPlay={() => setIsPlayingYoutube(true)}
-              onPause={() => setIsPlayingYoutube(false)}
-              onEnd={(e: { target: YouTubePlayer }) => {
-                if (isYoutubeRepeatRef.current) {
-                  e.target.seekTo(0, true);
-                  e.target.playVideo();
-                } else {
-                  setIsPlayingYoutube(false);
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {showYoutubePlayer && metadata.youtube && (
-          <div className="fixed bottom-0 left-0 right-0 h-16 bg-m3-card dark:bg-m3-dark-card border-t border-m3-border dark:border-m3-dark-border shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-[200] px-4 flex items-center justify-between animate-in slide-in-from-bottom-full">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0 border border-m3-border/50">
-                {metadata.youtube.match(YT_ID_REGEX) ||
-                metadata.youtube.match(/^[^&?]+$/) ? (
-                  <img
-                    src={`https://img.youtube.com/vi/${extractYoutubeId(metadata.youtube)}/default.jpg`}
-                    alt="YouTube Thumbnail"
-                    className="w-full h-full object-cover scale-150"
-                  />
-                ) : (
-                  <Disc className="w-5 h-5 m-auto mt-2.5 text-m3-secondary opacity-50" />
-                )}
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-[10px] font-black text-m3-text dark:text-m3-dark-text truncate max-w-[120px]">
-                  {metadata.title}
-                </p>
-                <p className="text-[9px] text-m3-secondary font-medium">
-                  Áudio do YouTube
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <button
-                onClick={async () => {
-                  if (!ytPlayerRef) return;
-                  const t = await ytPlayerRef.getCurrentTime();
-                  ytPlayerRef.seekTo(Math.max(0, t - 10), true);
-                }}
-                className="text-m3-secondary hover:text-m3-primary transition-colors active:scale-95"
-                title="Retroceder 10s"
-              >
-                <SkipBack className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  if (!ytPlayerRef) return;
-                  if (isPlayingYoutube) ytPlayerRef.pauseVideo();
-                  else ytPlayerRef.playVideo();
-                }}
-                className="w-10 h-10 rounded-full bg-m3-primary text-white flex items-center justify-center hover:opacity-95 shadow-md active:scale-95 transition-all"
-              >
-                {isPlayingYoutube ? (
-                  <Pause className="w-5 h-5" />
-                ) : (
-                  <Play className="w-5 h-5 ml-1" />
-                )}
-              </button>
-              <button
-                onClick={async () => {
-                  if (!ytPlayerRef) return;
-                  const t = await ytPlayerRef.getCurrentTime();
-                  ytPlayerRef.seekTo(t + 10, true);
-                }}
-                className="text-m3-secondary hover:text-m3-primary transition-colors active:scale-95"
-              >
-                <SkipForward className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsYoutubeRepeat((r) => !r)}
-                className={`ml-2 transition-colors active:scale-95 ${isYoutubeRepeat ? "text-m3-primary" : "text-m3-secondary hover:text-m3-text"}`}
-              >
-                <Repeat className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  ytPlayerRef?.pauseVideo();
-                  setIsPlayingYoutube(false);
-                  setShowYoutubePlayer(false);
-                }}
-                className="p-2 text-m3-secondary hover:text-red-500 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
 
         {selectedChord && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 select-none animate-in fade-in duration-200">
