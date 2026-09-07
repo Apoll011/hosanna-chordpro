@@ -782,7 +782,6 @@ const LyricsRenderer = React.memo(
   },
 );
 
-// Renderer robusto para suportar alinhamentos exatos via CSS Grid (maxMeasures)
 const ChordSectionRenderer = React.memo(
   ({
     line,
