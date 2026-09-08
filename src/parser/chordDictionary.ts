@@ -150,7 +150,7 @@ function resolveRootSemitone(raw: string): number | null {
   return null;
 }
 
-function pitchClassName(semitone: number): string {
+export function pitchClassName(semitone: number): string {
   return SEMITONE_NAMES[((semitone % 12) + 12) % 12];
 }
 
@@ -893,6 +893,85 @@ function getGuitarFingering(
   }
 
   return null;
+}
+
+// ============================================================================
+// Chord symbol analysis — used by the editor's validation/lint layer to flag
+// unknown roots/qualities without needing to compute a full fingering.
+// ============================================================================
+
+export interface ChordSymbolAnalysis {
+  raw: string;
+  /** False when no recognizable root note (A-G, sharps/flats, or PT-BR solfège) was found. */
+  hasValidRoot: boolean;
+  /** False when a root was found but the quality suffix isn't a known alias
+   *  (the dictionary still resolves it to "major" as a safe fallback). */
+  qualityRecognized: boolean;
+}
+
+export function analyzeChordSymbol(chord: string): ChordSymbolAnalysis {
+  const cleaned = chord.replace(/[()]/g, "").trim();
+  const rootMatch = cleaned.match(ROOT_PATTERN);
+  if (!rootMatch) {
+    return { raw: chord, hasValidRoot: false, qualityRecognized: false };
+  }
+
+  const rootText = rootMatch[1];
+  const remainder = cleaned.slice(rootText.length);
+
+  const slashAlias = SLASH_CONTAINING_ALIASES.find((e) =>
+    remainder.startsWith(e.alias),
+  );
+
+  let qualitySymbol: string;
+  if (slashAlias) {
+    qualitySymbol = slashAlias.alias;
+  } else {
+    const slashIndex = remainder.indexOf("/");
+    qualitySymbol =
+      slashIndex === -1 ? remainder : remainder.slice(0, slashIndex);
+  }
+
+  if (qualitySymbol === "") {
+    return { raw: chord, hasValidRoot: true, qualityRecognized: true };
+  }
+
+  const recognized = QUALITY_ALIAS_TABLE.some(
+    (e) =>
+      e.alias !== "" &&
+      (e.alias === qualitySymbol ||
+        e.alias.toLowerCase() === qualitySymbol.toLowerCase()),
+  );
+
+  return { raw: chord, hasValidRoot: true, qualityRecognized: recognized };
+}
+
+// ============================================================================
+// Raw chord theory (root + interval set) — exposed so instrument profiles
+// other than the hand-curated guitar/piano ones (see `src/instruments`) can
+// derive their own fingerings generically instead of needing a lookup table.
+// ============================================================================
+
+export interface ChordTheory {
+  rootSemitone: number;
+  rootDisplay: string;
+  qualityId: string;
+  qualityLabel: string;
+  intervals: number[];
+  bassSemitone?: number;
+}
+
+export function getChordTheory(chord: string): ChordTheory | null {
+  const parsed = parseChordSymbol(chord);
+  if (!parsed) return null;
+  return {
+    rootSemitone: parsed.rootSemitone,
+    rootDisplay: parsed.rootDisplay,
+    qualityId: parsed.quality.id,
+    qualityLabel: parsed.quality.label,
+    intervals: parsed.quality.intervals,
+    bassSemitone: parsed.bassSemitone,
+  };
 }
 
 // ============================================================================
