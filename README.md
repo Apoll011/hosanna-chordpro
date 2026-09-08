@@ -1,5 +1,7 @@
 # @hosanna/chordpro
 
+!outdated
+
 > A modern, modular ChordPro toolkit for JavaScript & TypeScript. Includes an AST parser, music-theory transposition engine, chord dictionary with interactive guitar & piano diagrams, universal sheet converter, and React editor & renderer components.
 
 [![npm version](https://img.shields.io/npm/v/@hosanna/chordpro.svg)](https://www.npmjs.com/package/@hosanna/chordpro)
