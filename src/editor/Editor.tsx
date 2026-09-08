@@ -10,6 +10,8 @@ import type { IAceEditorProps } from "react-ace";
 import { registerFormatShortcut } from "../formatter/integrations/ace";
 import type { FormatResult } from "../formatter/types";
 import { ChordFinder } from "./ChordFinder";
+import type { ChordProDiagnostic, LintController } from "./lint";
+import { attachChordProLinter, injectChordProLintStyles } from "./lint";
 import { registerChordproMode } from "./mode-chordpro";
 import { registerChordproSnippets } from "./snippets-chordpro";
 
@@ -531,6 +533,7 @@ export interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   onSave?: (value: string) => void;
+  onDiagnostics?: (diagnostics: ChordProDiagnostic[]) => void;
   /**
    * Called after a format operation (Ctrl/Cmd+Shift+F) completes.
    * Provides the FormatResult so the consumer can show toast/notification feedback.
@@ -546,6 +549,7 @@ export function Editor({
   value,
   onChange,
   onSave,
+  onDiagnostics,
   onFormat,
   settings,
   mode = "chordpro",
@@ -564,6 +568,8 @@ export function Editor({
   });
   const [transposeModal, setTransposeModal] = useState(false);
 
+  const linterRef = useRef<LintController | null>(null);
+
   const handleContextMenuAction = useCallback((type: SectionType) => {
     if (editorRef.current) {
       wrapSelectionInSection(editorRef.current, type);
@@ -573,6 +579,24 @@ export function Editor({
   const openTransposeModal = useCallback(() => {
     setTransposeModal(true);
   }, []);
+
+  useEffect(() => {
+    injectChordProLintStyles();
+
+    return () => {
+      // Clean up linter markers when component unmounts
+      if (linterRef.current) {
+        linterRef.current.dispose();
+      }
+    };
+  }, []);
+
+  // Run linter whenever the text value changes
+  useEffect(() => {
+    if (linterRef.current) {
+      linterRef.current.lint(value);
+    }
+  }, [value]);
 
   const handleTransposeConfirm = useCallback(
     (newText: string, targetNote: string) => {
@@ -611,6 +635,17 @@ export function Editor({
     (editor: any) => {
       if (!editor) return;
       editorRef.current = editor;
+
+      const aceInstance = (window as any).ace;
+      if (aceInstance && mode === "chordpro") {
+        linterRef.current = attachChordProLinter(
+          aceInstance,
+          editor,
+          onDiagnostics,
+        );
+        // Do an initial lint pass
+        linterRef.current.lint(editor.getValue());
+      }
 
       // Add custom save command if commands API exists
       if (editor.commands && typeof editor.commands.addCommand === "function") {
