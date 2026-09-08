@@ -5,35 +5,26 @@
 
 import {
   BookOpen,
+  ChevronDown,
   Disc,
   Flame,
   HelpCircle,
   Info,
   Key,
-  LayoutGrid,
   Music,
-  Pause,
-  Play,
-  Repeat,
-  SkipBack,
-  SkipForward,
   User,
   X,
 } from "lucide-react";
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import YouTube, { type YouTubePlayer } from "react-youtube";
+import React, { useCallback, useMemo, useState } from "react";
 import { chordDictionary } from "../parser/chordDictionary";
-import { LineAST, SegmentAST, parseChordPro } from "../parser/parser";
+import {
+  LineAST,
+  SegmentAST,
+  parseChordProDocument,
+  selectVersion,
+} from "../parser/parser";
 import { transposeChord } from "../parser/transpose";
 import { ChordRoll, GuitarDiagram, PianoDiagram } from "./ChordRoll";
-
-const YT_ID_REGEX =
-  /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/;
-
-function extractYoutubeId(urlOrId: string): string {
-  const match = urlOrId.match(YT_ID_REGEX);
-  return match?.[1] || urlOrId;
-}
 
 function getDuration(duration: string): string {
   const seconds = Number(duration);
@@ -60,9 +51,9 @@ export interface ChordProPreviewProps {
   instrument?: "guitar" | "piano";
   showDiagrams?: boolean;
   fileName?: string;
-  showYoutubePlayer?: boolean;
-  onShowYoutubePlayerChange?: (show: boolean) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  selectedVersionId?: string;
+  onSelectVersion?: (versionId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,32 +72,41 @@ const ChordProRenderer = React.memo(
     instrument = "guitar",
     showDiagrams = false,
     fileName,
-    showYoutubePlayer: showYoutubePlayerProp,
-    onShowYoutubePlayerChange,
     scrollContainerRef,
+    selectedVersionId: selectedVersionIdProp,
+    onSelectVersion,
   }: ChordProPreviewProps) => {
-    const [ytPlayerRef, setYtPlayerRef] = useState<YouTubePlayer | null>(null);
-    const [isPlayingYoutube, setIsPlayingYoutube] = useState(false);
-    const [isYoutubeRepeat, setIsYoutubeRepeat] = useState(false);
-    const [showYoutubeInternal, setShowYoutubeInternal] = useState(false);
+    const [internalVersionId, setInternalVersionId] =
+      useState<string>("default");
 
-    const showYoutubePlayer = showYoutubePlayerProp ?? showYoutubeInternal;
-    const setShowYoutubePlayer = useCallback(
-      (val: boolean) => {
-        setShowYoutubeInternal(val);
-        onShowYoutubePlayerChange?.(val);
-      },
-      [onShowYoutubePlayerChange],
-    );
+    const activeVersionId = selectedVersionIdProp ?? internalVersionId;
 
-    const isYoutubeRepeatRef = useRef(isYoutubeRepeat);
-    isYoutubeRepeatRef.current = isYoutubeRepeat;
-
-    const parsedSong = useMemo(() => {
-      return parseChordPro(content);
+    const parsedDocument = useMemo(() => {
+      return parseChordProDocument(content);
     }, [content]);
 
+    const activeVersion = useMemo(() => {
+      return selectVersion(parsedDocument, activeVersionId);
+    }, [parsedDocument, activeVersionId]);
+
+    const parsedSong = useMemo(() => {
+      return {
+        id: activeVersion.id,
+        name: activeVersion.name,
+        metadata: activeVersion.metadata,
+        sections: activeVersion.body,
+      };
+    }, [activeVersion]);
+
     const { metadata } = parsedSong;
+
+    const handleVersionChange = useCallback(
+      (id: string) => {
+        setInternalVersionId(id);
+        onSelectVersion?.(id);
+      },
+      [onSelectVersion],
+    );
 
     const isGuitar = instrument === "guitar";
     const effectiveCapo = isGuitar ? capoVal : 0;
@@ -167,9 +167,31 @@ const ChordProRenderer = React.memo(
             <div className="mb-6 border-b border-neutral-100 dark:border-slate-800 pb-5 select-none">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
-                    {metadata.title}
-                  </h2>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                      {metadata.title}
+                    </h2>
+                    {parsedDocument.variants.length > 0 && (
+                      <div className="relative inline-flex items-center">
+                        <select
+                          value={activeVersion.id}
+                          onChange={(e) => handleVersionChange(e.target.value)}
+                          className="appearance-none bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold pl-2.5 pr-7 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-xs transition-colors"
+                          title="Selecionar versão da música"
+                        >
+                          <option value="default">
+                            {parsedDocument.default.name || "Padrão"}
+                          </option>
+                          {parsedDocument.variants.map((variant) => (
+                            <option key={variant.id} value={variant.id}>
+                              {variant.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-indigo-500 pointer-events-none absolute right-2" />
+                      </div>
+                    )}
+                  </div>
 
                   {metadata.subtitle && (
                     <h3 className="text-[15px] font-medium text-neutral-600 dark:text-neutral-400 mt-1">
@@ -339,41 +361,30 @@ const ChordProRenderer = React.memo(
                 }
 
                 // Grid (Instrumental) Renderer com alinhamento perfeito de compassos
-                if (section.type === "grid") {
-                  const maxMeasures = Math.max(
-                    1,
-                    ...section.lines.map((l) => l.measures?.length || 1),
-                  );
-
+                if (section.type === "grid" && showChords) {
                   return (
                     <div
                       key={secIdx}
-                      className={`bg-slate-100/60 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/60 my-6 ${
+                      className={`pl-3 my-6 border-l-2 border-slate-200 dark:border-slate-800 ${
                         twoColumnLayout
                           ? "break-inside-avoid-column inline-block w-full"
                           : ""
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
-                          <LayoutGrid className="w-3.5 h-3.5" />
-                          <span>{section.label || "Instrumental"}</span>
-                        </div>
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5 select-none">
+                        {section.label || "Instrumental"}
                         {section.repeat && (
-                          <span className="text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded uppercase border border-indigo-200 dark:border-indigo-800/50">
-                            Repetir {section.repeat}x
-                          </span>
+                          <span> · repetir {section.repeat}×</span>
                         )}
                       </div>
-                      <div className="space-y-1.5 font-medium">
+                      <div className="space-y-1.5">
                         {section.lines.map((line, lineIdx) => (
-                          <LineRenderer
+                          <ChordSectionRenderer
                             key={lineIdx}
                             line={line}
                             showChords={showChords}
                             transpose={effectiveTranspose}
                             onChordClick={handleChordClick}
-                            maxGridMeasures={maxMeasures}
                           />
                         ))}
                       </div>
@@ -449,7 +460,7 @@ const ChordProRenderer = React.memo(
                 }
 
                 // Tablaturas melhoradas
-                if (section.type === "tab") {
+                if (section.type === "tab" && showChords) {
                   return (
                     <div
                       key={secIdx}
@@ -546,118 +557,6 @@ const ChordProRenderer = React.memo(
             </div>
           </div>
         </div>
-
-        {metadata.youtube && showYoutubePlayer && (
-          <div className="hidden">
-            <YouTube
-              videoId={extractYoutubeId(metadata.youtube)}
-              opts={{
-                height: "0",
-                width: "0",
-                playerVars: { autoplay: 1, controls: 0, disablekb: 1 },
-              }}
-              onReady={(e: { target: YouTubePlayer }) => {
-                setYtPlayerRef(e.target);
-                e.target.pauseVideo();
-                setIsPlayingYoutube(false);
-              }}
-              onPlay={() => setIsPlayingYoutube(true)}
-              onPause={() => setIsPlayingYoutube(false)}
-              onEnd={(e: { target: YouTubePlayer }) => {
-                if (isYoutubeRepeatRef.current) {
-                  e.target.seekTo(0, true);
-                  e.target.playVideo();
-                } else {
-                  setIsPlayingYoutube(false);
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {showYoutubePlayer && metadata.youtube && (
-          <div className="fixed bottom-0 left-0 right-0 h-16 bg-m3-card dark:bg-m3-dark-card border-t border-m3-border dark:border-m3-dark-border shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-[200] px-4 flex items-center justify-between animate-in slide-in-from-bottom-full">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0 border border-m3-border/50">
-                {metadata.youtube.match(YT_ID_REGEX) ||
-                metadata.youtube.match(/^[^&?]+$/) ? (
-                  <img
-                    src={`https://img.youtube.com/vi/${extractYoutubeId(metadata.youtube)}/default.jpg`}
-                    alt="YouTube Thumbnail"
-                    className="w-full h-full object-cover scale-150"
-                  />
-                ) : (
-                  <Disc className="w-5 h-5 m-auto mt-2.5 text-m3-secondary opacity-50" />
-                )}
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-[10px] font-black text-m3-text dark:text-m3-dark-text truncate max-w-[120px]">
-                  {metadata.title}
-                </p>
-                <p className="text-[9px] text-m3-secondary font-medium">
-                  Áudio do YouTube
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <button
-                onClick={async () => {
-                  if (!ytPlayerRef) return;
-                  const t = await ytPlayerRef.getCurrentTime();
-                  ytPlayerRef.seekTo(Math.max(0, t - 10), true);
-                }}
-                className="text-m3-secondary hover:text-m3-primary transition-colors active:scale-95"
-                title="Retroceder 10s"
-              >
-                <SkipBack className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  if (!ytPlayerRef) return;
-                  if (isPlayingYoutube) ytPlayerRef.pauseVideo();
-                  else ytPlayerRef.playVideo();
-                }}
-                className="w-10 h-10 rounded-full bg-m3-primary text-white flex items-center justify-center hover:opacity-95 shadow-md active:scale-95 transition-all"
-              >
-                {isPlayingYoutube ? (
-                  <Pause className="w-5 h-5" />
-                ) : (
-                  <Play className="w-5 h-5 ml-1" />
-                )}
-              </button>
-              <button
-                onClick={async () => {
-                  if (!ytPlayerRef) return;
-                  const t = await ytPlayerRef.getCurrentTime();
-                  ytPlayerRef.seekTo(t + 10, true);
-                }}
-                className="text-m3-secondary hover:text-m3-primary transition-colors active:scale-95"
-              >
-                <SkipForward className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsYoutubeRepeat((r) => !r)}
-                className={`ml-2 transition-colors active:scale-95 ${isYoutubeRepeat ? "text-m3-primary" : "text-m3-secondary hover:text-m3-text"}`}
-              >
-                <Repeat className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  ytPlayerRef?.pauseVideo();
-                  setIsPlayingYoutube(false);
-                  setShowYoutubePlayer(false);
-                }}
-                className="p-2 text-m3-secondary hover:text-red-500 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
 
         {selectedChord && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 select-none animate-in fade-in duration-200">
@@ -768,17 +667,10 @@ interface LineRendererProps {
   showChords: boolean;
   transpose?: number;
   onChordClick?: (chord: string) => void;
-  maxGridMeasures?: number;
 }
 
 const LineRenderer = React.memo(
-  ({
-    line,
-    showChords,
-    transpose = 0,
-    onChordClick,
-    maxGridMeasures,
-  }: LineRendererProps) => {
+  ({ line, showChords, transpose = 0, onChordClick }: LineRendererProps) => {
     if (line.type === "empty") return <div className="h-2"></div>;
     if (line.type === "comment") return <CommentRenderer line={line} />;
     if (line.type === "comment_box") return <CommentBoxRenderer line={line} />;
@@ -790,7 +682,6 @@ const LineRenderer = React.memo(
           showChords={showChords}
           transpose={transpose}
           onChordClick={onChordClick}
-          maxMeasures={maxGridMeasures}
         />
       );
 
@@ -871,106 +762,53 @@ const LyricsRenderer = React.memo(
   },
 );
 
-// Renderer robusto para suportar alinhamentos exatos via CSS Grid (maxMeasures)
 const ChordSectionRenderer = React.memo(
   ({
     line,
     showChords,
     transpose = 0,
     onChordClick,
-    maxMeasures,
   }: {
     line: LineAST;
     showChords: boolean;
     transpose?: number;
     onChordClick?: (chord: string) => void;
-    maxMeasures?: number;
   }) => {
     if (!showChords) return null;
 
     const measures = line.measures || [];
-    const hasTiming = measures.some((m) =>
-      m.chords.some((c) => c.timing !== undefined && c.timing !== 1),
-    );
-
-    const isGridAligned = maxMeasures !== undefined && maxMeasures > 0;
 
     return (
-      <div className="my-1.5 p-1 w-full flex items-stretch bg-slate-50/80 dark:bg-slate-900/40 rounded-lg border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        {line.startBarline && (
-          <div className="flex items-center justify-center shrink-0 w-6">
-            {renderBarline(line.startBarline)}
-          </div>
-        )}
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        {line.startBarline && renderBarline(line.startBarline)}
 
-        <div
-          className={
-            isGridAligned ? "grid gap-1 flex-1" : "flex flex-wrap flex-1"
-          }
-          style={
-            isGridAligned
-              ? {
-                  gridTemplateColumns: `repeat(${maxMeasures}, minmax(0, 1fr))`,
-                }
-              : undefined
-          }
-        >
-          {measures.map((measure, mIdx) => {
-            return (
-              <div
-                key={mIdx}
-                className={`flex items-stretch border-r border-slate-200/60 dark:border-slate-700/50 last:border-none ${isGridAligned ? "" : "flex-1 min-w-[120px]"}`}
-              >
-                <div className="flex-1 flex items-center justify-evenly gap-1 px-1 py-1">
-                  {measure.chords.map((chordSeg, cIdx) => {
-                    const transposed = transposeChord(
-                      chordSeg.chord,
-                      transpose,
-                    );
-                    const timing = chordSeg.timing ?? 1;
+        {measures.map((measure, mIdx) => (
+          <React.Fragment key={mIdx}>
+            <span className="flex items-baseline gap-1.5">
+              {measure.chords.map((chordSeg, cIdx) => {
+                const transposed = transposeChord(chordSeg.chord, transpose);
+                const timing = chordSeg.timing ?? 1;
 
-                    return (
-                      <span
-                        key={cIdx}
-                        className="flex-1 flex items-center justify-center cursor-pointer rounded transition-colors hover:bg-white dark:hover:bg-slate-800 py-1.5 px-1 min-w-max shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                        style={{ flexGrow: timing }}
-                        onClick={() => onChordClick?.(transposed)}
-                        title={timing !== 1 ? `Duração: ${timing}x` : undefined}
-                      >
-                        <span className="font-bold text-[#0284c7] dark:text-sky-400 font-mono select-none text-[15px] tracking-wide">
-                          {transposed}
-                        </span>
-
-                        {hasTiming && timing !== 1 && (
-                          <span className="ml-0.5 mt-0.5 text-[10px] font-semibold text-indigo-400 dark:text-indigo-500 opacity-80">
-                            {timing}×
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-
-                {measure.endBarline && (
-                  <div className="flex items-center justify-center shrink-0 px-1 w-6 bg-slate-100/50 dark:bg-slate-800/50 rounded-r">
-                    {renderBarline(measure.endBarline)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Se esta linha tiver menos compassos que o maxMeasures, preenchemos as células de grelha em falta */}
-          {isGridAligned &&
-            Array.from({
-              length: Math.max(0, maxMeasures - measures.length),
-            }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="border-r border-slate-200/60 dark:border-slate-700/50 last:border-none bg-slate-50/30 dark:bg-slate-800/10 rounded-sm"
-              ></div>
-            ))}
-        </div>
+                return (
+                  <span
+                    key={cIdx}
+                    className="font-mono text-[14px] text-slate-600 dark:text-slate-400 cursor-pointer hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                    onClick={() => onChordClick?.(transposed)}
+                    title={timing !== 1 ? `Duração: ${timing}x` : undefined}
+                  >
+                    {transposed}
+                    {timing !== 1 && (
+                      <sub className="text-[9px] text-slate-400 dark:text-slate-600 ml-px">
+                        {timing}×
+                      </sub>
+                    )}
+                  </span>
+                );
+              })}
+            </span>
+            {measure.endBarline && renderBarline(measure.endBarline)}
+          </React.Fragment>
+        ))}
       </div>
     );
   },

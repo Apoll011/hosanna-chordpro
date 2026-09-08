@@ -8,3 +8,8 @@ export {
 export { ChordFinder, type ChordOccurrence } from "./ChordFinder";
 export { registerChordproMode } from "./mode-chordpro";
 export { registerChordproSnippets } from "./snippets-chordpro";
+export {
+  formatAceDocument,
+  formatAceSelection,
+  registerFormatShortcut,
+} from "../formatter/integrations/ace";

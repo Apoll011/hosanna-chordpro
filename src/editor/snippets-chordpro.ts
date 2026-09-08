@@ -146,6 +146,12 @@ export async function registerChordproSnippets(aceInstance?: any): Promise<void>
         "	E|----------------------------------|",
         "	{end_of_tab}",
 
+        // version block
+        "snippet version",
+        "	{start_of_version: ${1:Nome da Versão}}",
+        "	${2:}",
+        "	{end_of_version}",
+
         // define tag
         "snippet d",
         "	{define: ${1:Am} base-fret ${2:1} frets ${3:0 0 0 0 0 0} fingers ${4:0 0 0 0 0 0}}",
