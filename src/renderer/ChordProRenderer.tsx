@@ -4,19 +4,23 @@
  */
 
 import {
+  AlertTriangle,
   BookOpen,
+  CheckCircle2,
   ChevronDown,
   Disc,
   Flame,
   HelpCircle,
   Info,
   Key,
+  Lightbulb,
   Music,
   User,
   X,
 } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
-import { chordDictionary } from "../parser/chordDictionary";
+import "../instruments"; // ensure built-in instruments are registered
+import { instrumentRegistry } from "../instruments/registry";
 import {
   LineAST,
   SegmentAST,
@@ -24,7 +28,7 @@ import {
   selectVersion,
 } from "../parser/parser";
 import { transposeChord } from "../parser/transpose";
-import { ChordRoll, GuitarDiagram, PianoDiagram } from "./ChordRoll";
+import { ChordRoll } from "./ChordRoll";
 
 function getDuration(duration: string): string {
   const seconds = Number(duration);
@@ -48,7 +52,9 @@ export interface ChordProPreviewProps {
   onCapoChange?: (val: number) => void;
   twoColumnLayout?: boolean;
   fontSize?: number;
-  instrument?: "guitar" | "piano";
+  /** Instrument id, e.g. "guitar", "piano", "ukulele", or any instrument
+   *  registered via `instrumentRegistry.register(...)`. */
+  instrument?: string;
   showDiagrams?: boolean;
   fileName?: string;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
@@ -108,8 +114,8 @@ const ChordProRenderer = React.memo(
       [onSelectVersion],
     );
 
-    const isGuitar = instrument === "guitar";
-    const effectiveCapo = isGuitar ? capoVal : 0;
+    const instrumentProfile = instrumentRegistry.get(instrument);
+    const effectiveCapo = instrumentProfile?.supportsCapo ? capoVal : 0;
     const effectiveTranspose = transposeVal - effectiveCapo;
 
     const soundingKey = useMemo(() => {
@@ -142,14 +148,19 @@ const ChordProRenderer = React.memo(
     }, [parsedSong]);
 
     const [selectedChord, setSelectedChord] = useState<string | null>(null);
-    const [modalInstrument, setModalInstrument] = useState<"guitar" | "piano">(
+    const [modalInstrument, setModalInstrument] = useState<string>(
       instrument,
     );
+    const availableInstruments = useMemo(
+      () => instrumentRegistry.list(),
+      [],
+    );
 
-    const chordFingering = useMemo(() => {
+    const modalFingering = useMemo(() => {
       if (!selectedChord) return null;
-      return chordDictionary.getFingering(selectedChord);
-    }, [selectedChord]);
+      const profile = instrumentRegistry.get(modalInstrument);
+      return profile?.getFingering(selectedChord) ?? null;
+    }, [selectedChord, modalInstrument]);
 
     const handleChordClick = (chord: string) => {
       setModalInstrument(instrument);
@@ -577,46 +588,31 @@ const ChordProRenderer = React.memo(
               </div>
 
               <div className="flex bg-m3-sidebar dark:bg-m3-dark-sidebar p-1 rounded-2xl border border-m3-border dark:border-m3-dark-border">
-                <button
-                  onClick={() => setModalInstrument("guitar")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-                    modalInstrument === "guitar"
-                      ? "bg-m3-primary text-white shadow-sm"
-                      : "text-m3-secondary dark:text-m3-dark-secondary hover:text-m3-text"
-                  }`}
-                >
-                  Diagrama de Guitarra
-                </button>
-                <button
-                  onClick={() => setModalInstrument("piano")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-                    modalInstrument === "piano"
-                      ? "bg-m3-primary text-white shadow-sm"
-                      : "text-m3-secondary dark:text-m3-dark-secondary hover:text-m3-text"
-                  }`}
-                >
-                  Teclado de Piano
-                </button>
+                {availableInstruments.map((profile) => (
+                  <button
+                    key={profile.id}
+                    onClick={() => setModalInstrument(profile.id)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+                      modalInstrument === profile.id
+                        ? "bg-m3-primary text-white shadow-sm"
+                        : "text-m3-secondary dark:text-m3-dark-secondary hover:text-m3-text"
+                    }`}
+                  >
+                    {profile.displayName}
+                  </button>
+                ))}
               </div>
 
               <div className="py-4 flex flex-col items-center justify-center min-h-[140px] border border-m3-border/30 dark:border-m3-dark-border/30 rounded-2xl bg-m3-sidebar/30 dark:bg-m3-dark-sidebar/10">
-                {chordFingering ? (
-                  modalInstrument === "guitar" && chordFingering.guitar ? (
-                    <GuitarDiagram
-                      frets={chordFingering.guitar.frets}
-                      fingers={chordFingering.guitar.fingers}
-                      barre={chordFingering.guitar.barre}
-                    />
-                  ) : modalInstrument === "piano" && chordFingering.piano ? (
-                    <PianoDiagram
-                      highlightKeys={chordFingering.piano.highlightKeys}
-                    />
-                  ) : (
+                {modalFingering ? (
+                  instrumentRegistry
+                    .get(modalInstrument)
+                    ?.renderDiagram(modalFingering.shape) ?? (
                     <div className="text-center p-4">
                       <HelpCircle className="w-8 h-8 mx-auto text-amber-500 opacity-80 mb-2" />
                       <p className="text-xs text-m3-secondary dark:text-m3-dark-secondary font-medium">
                         O diagrama para{" "}
-                        {modalInstrument === "guitar" ? "Guitarra" : "Piano"}{" "}
+                        {instrumentRegistry.get(modalInstrument)?.displayName}{" "}
                         não pôde ser calculado.
                       </p>
                     </div>
@@ -635,13 +631,23 @@ const ChordProRenderer = React.memo(
                 )}
               </div>
 
-              {chordFingering?.piano && (
-                <div className="text-center font-mono text-xs text-m3-secondary dark:text-m3-dark-secondary bg-m3-sidebar dark:bg-m3-dark-sidebar py-2 rounded-xl">
-                  Notas do Acorde:{" "}
-                  <span className="font-bold text-m3-primary dark:text-m3-dark-primary">
-                    {chordFingering.piano.notes.join(" - ")}
-                  </span>
-                </div>
+              {modalFingering && (
+                <>
+                  {(() => {
+                    const subLabel = instrumentRegistry
+                      .get(modalInstrument)
+                      ?.getSubLabel?.(modalFingering.shape);
+                    if (!subLabel) return null;
+                    return (
+                      <div className="text-center font-mono text-xs text-m3-secondary dark:text-m3-dark-secondary bg-m3-sidebar dark:bg-m3-dark-sidebar py-2 rounded-xl">
+                        Notas do Acorde:{" "}
+                        <span className="font-bold text-m3-primary dark:text-m3-dark-primary">
+                          {subLabel}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </>
               )}
 
               <button
@@ -673,6 +679,8 @@ const LineRenderer = React.memo(
   ({ line, showChords, transpose = 0, onChordClick }: LineRendererProps) => {
     if (line.type === "empty") return <div className="h-2"></div>;
     if (line.type === "comment") return <CommentRenderer line={line} />;
+    if (line.type === "comment_italic")
+      return <CommentItalicRenderer line={line} />;
     if (line.type === "comment_box") return <CommentBoxRenderer line={line} />;
 
     if (line.type === "chord-section")
@@ -696,18 +704,67 @@ const LineRenderer = React.memo(
   },
 );
 
+// Plain, unobtrusive comment (`{comment}` / `{c}`) — small, muted, upright text.
 const CommentRenderer = React.memo(({ line }: { line: LineAST }) => (
+  <div className="text-xs text-slate-400 dark:text-slate-500 my-1">
+    {line.text}
+  </div>
+));
+
+// Italic comment (`{comment_italic}` / `{ci}`) — same weight as a plain
+// comment but visually distinct so the two directives don't collapse into
+// one look.
+const CommentItalicRenderer = React.memo(({ line }: { line: LineAST }) => (
   <div className="text-xs text-slate-400 dark:text-slate-500 italic my-1">
     {line.text}
   </div>
 ));
 
-const CommentBoxRenderer = React.memo(({ line }: { line: LineAST }) => (
-  <div className="bg-amber-100 dark:bg-amber-900/30 border-l-4 border-amber-500 text-amber-900 dark:text-amber-200 p-2.5 my-2.5 rounded-r-md text-xs font-bold tracking-wide flex items-center gap-2 shadow-sm max-w-fit">
-    <Info className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-500" />
-    <span>{line.text}</span>
-  </div>
-));
+/** Visual styles available to `{comment_box}` (and, via `|style=`, to
+ *  `{comment}`/`{comment_italic}`). Adding a new style here is enough to
+ *  make it usable from ChordPro source — no parser changes required. */
+const COMMENT_BOX_STYLES: Record<
+  string,
+  { container: string; iconClass: string; Icon: typeof Info }
+> = {
+  info: {
+    container:
+      "bg-amber-100 dark:bg-amber-900/30 border-l-4 border-amber-500 text-amber-900 dark:text-amber-200",
+    iconClass: "text-amber-600 dark:text-amber-500",
+    Icon: Info,
+  },
+  warning: {
+    container:
+      "bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 text-red-900 dark:text-red-200",
+    iconClass: "text-red-600 dark:text-red-500",
+    Icon: AlertTriangle,
+  },
+  success: {
+    container:
+      "bg-emerald-100 dark:bg-emerald-900/30 border-l-4 border-emerald-500 text-emerald-900 dark:text-emerald-200",
+    iconClass: "text-emerald-600 dark:text-emerald-500",
+    Icon: CheckCircle2,
+  },
+  tip: {
+    container:
+      "bg-sky-100 dark:bg-sky-900/30 border-l-4 border-sky-500 text-sky-900 dark:text-sky-200",
+    iconClass: "text-sky-600 dark:text-sky-500",
+    Icon: Lightbulb,
+  },
+};
+
+const CommentBoxRenderer = React.memo(({ line }: { line: LineAST }) => {
+  const style = COMMENT_BOX_STYLES[line.style ?? "info"] ?? COMMENT_BOX_STYLES.info;
+  const { Icon } = style;
+  return (
+    <div
+      className={`${style.container} p-2.5 my-2.5 rounded-r-md text-xs font-bold tracking-wide flex items-center gap-2 shadow-sm max-w-fit`}
+    >
+      <Icon className={`w-4 h-4 shrink-0 ${style.iconClass}`} />
+      <span>{line.text}</span>
+    </div>
+  );
+});
 
 const LyricsRenderer = React.memo(
   ({

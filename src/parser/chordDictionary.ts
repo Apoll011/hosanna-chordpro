@@ -48,8 +48,23 @@ export interface ChordFingering {
   };
 }
 
+/** Minimal, instrument-agnostic breakdown of a chord symbol (root + quality),
+ *  exposed so other instrument modules (ukulele, mandolin, ...) can build
+ *  their own fingering tables without re-implementing chord-symbol parsing. */
+export interface ParsedChordSymbol {
+  raw: string;
+  rootSemitone: number;
+  rootDisplay: string;
+  qualityId: string;
+  qualityLabel: string;
+  bassSemitone?: number;
+}
+
 export interface IChordDictionary {
   getFingering: (chord: string) => ChordFingering | null;
+  /** Parse a chord symbol into root + quality without computing any
+   *  instrument-specific voicing. Returns null for unrecognized symbols. */
+  parse?: (chord: string) => ParsedChordSymbol | null;
 }
 
 interface GuitarShape {
@@ -885,6 +900,19 @@ function getGuitarFingering(
 // ============================================================================
 
 export class DefaultChordDictionary implements IChordDictionary {
+  parse(chord: string): ParsedChordSymbol | null {
+    const parsed = parseChordSymbol(chord);
+    if (!parsed) return null;
+    return {
+      raw: parsed.raw,
+      rootSemitone: parsed.rootSemitone,
+      rootDisplay: parsed.rootDisplay,
+      qualityId: parsed.quality.id,
+      qualityLabel: parsed.quality.label,
+      bassSemitone: parsed.bassSemitone,
+    };
+  }
+
   getFingering(chord: string): ChordFingering | null {
     const parsed = parseChordSymbol(chord);
     if (!parsed) return null;

@@ -9,10 +9,24 @@ export interface MeasureAST {
   endBarline: string;
 }
 
+/** Named visual styles a `{comment_box}` (or styled `{comment}`/`{comment_italic}`)
+ *  can request, e.g. `{comment_box: Watch the key change|warning}`. Unknown
+ *  style names are still passed through so the renderer can decide a
+ *  sensible fallback. */
+export type CommentStyle = "info" | "warning" | "success" | "tip" | string;
+
 export interface LineAST {
   type:
-    "lyrics" | "comment" | "comment_box" | "tab" | "empty" | "chord-section";
+    | "lyrics"
+    | "comment"
+    | "comment_italic"
+    | "comment_box"
+    | "tab"
+    | "empty"
+    | "chord-section";
   text?: string;
+  /** Only meaningful for comment/comment_italic/comment_box lines. */
+  style?: CommentStyle;
   segments?: SegmentAST[];
   measures?: MeasureAST[];
   startBarline?: string;
@@ -66,6 +80,26 @@ export interface SongAST {
 }
 
 const TIMING_REGEX = /^(.+?)@([0-9]*\.?[0-9]+)x$/;
+
+// Trailing "|style" or "|style=name" suffix on a comment directive's value,
+// e.g. "{comment_box: Segue com calma|warning}" or
+// "{ci: Improviso livre|style=tip}". Lets each comment type carry its own
+// visual style without inventing new directive names.
+const COMMENT_STYLE_REGEX = /\|\s*(?:style\s*=\s*)?([a-zA-Z_-]+)\s*$/;
+
+function parseCommentValue(value: string): {
+  text: string;
+  style?: string;
+} {
+  const match = value.match(COMMENT_STYLE_REGEX);
+  if (match) {
+    return {
+      text: value.slice(0, match.index).trim(),
+      style: match[1].toLowerCase(),
+    };
+  }
+  return { text: value };
+}
 
 function parseChordTiming(rawChord: string): {
   chord: string;
@@ -390,18 +424,33 @@ export function parseChordProDocument(content: string): ChordProDocument {
           };
           break;
 
-        case "comment":
-        case "comment_italic":
-          const commentLine: LineAST = { type: "comment", text: value };
+        case "comment": {
+          const { text, style } = parseCommentValue(value);
+          const commentLine: LineAST = { type: "comment", text, style };
           if (ctx.currentSection) ctx.currentSection.lines.push(commentLine);
           else ctx.sections.push({ type: "comment", lines: [commentLine] });
           break;
+        }
 
-        case "comment_box":
-          const cbLine: LineAST = { type: "comment_box", text: value };
+        case "comment_italic": {
+          const { text, style } = parseCommentValue(value);
+          const ciLine: LineAST = { type: "comment_italic", text, style };
+          if (ctx.currentSection) ctx.currentSection.lines.push(ciLine);
+          else ctx.sections.push({ type: "comment", lines: [ciLine] });
+          break;
+        }
+
+        case "comment_box": {
+          const { text, style } = parseCommentValue(value);
+          const cbLine: LineAST = {
+            type: "comment_box",
+            text,
+            style: style || "info",
+          };
           if (ctx.currentSection) ctx.currentSection.lines.push(cbLine);
           else ctx.sections.push({ type: "comment", lines: [cbLine] });
           break;
+        }
 
         case "repeat":
           if (ctx.currentSection) {
