@@ -11,7 +11,6 @@ import {
   HelpCircle,
   Info,
   Key,
-  LayoutGrid,
   Music,
   User,
   X,
@@ -362,41 +361,30 @@ const ChordProRenderer = React.memo(
                 }
 
                 // Grid (Instrumental) Renderer com alinhamento perfeito de compassos
-                if (section.type === "grid") {
-                  const maxMeasures = Math.max(
-                    1,
-                    ...section.lines.map((l) => l.measures?.length || 1),
-                  );
-
+                if (section.type === "grid" && showChords) {
                   return (
                     <div
                       key={secIdx}
-                      className={`bg-slate-100/60 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/60 my-6 ${
+                      className={`pl-3 my-6 border-l-2 border-slate-200 dark:border-slate-800 ${
                         twoColumnLayout
                           ? "break-inside-avoid-column inline-block w-full"
                           : ""
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
-                          <LayoutGrid className="w-3.5 h-3.5" />
-                          <span>{section.label || "Instrumental"}</span>
-                        </div>
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5 select-none">
+                        {section.label || "Instrumental"}
                         {section.repeat && (
-                          <span className="text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded uppercase border border-indigo-200 dark:border-indigo-800/50">
-                            Repetir {section.repeat}x
-                          </span>
+                          <span> · repetir {section.repeat}×</span>
                         )}
                       </div>
-                      <div className="space-y-1.5 font-medium">
+                      <div className="space-y-1.5">
                         {section.lines.map((line, lineIdx) => (
-                          <LineRenderer
+                          <ChordSectionRenderer
                             key={lineIdx}
                             line={line}
                             showChords={showChords}
                             transpose={effectiveTranspose}
                             onChordClick={handleChordClick}
-                            maxGridMeasures={maxMeasures}
                           />
                         ))}
                       </div>
@@ -472,7 +460,7 @@ const ChordProRenderer = React.memo(
                 }
 
                 // Tablaturas melhoradas
-                if (section.type === "tab") {
+                if (section.type === "tab" && showChords) {
                   return (
                     <div
                       key={secIdx}
@@ -679,17 +667,10 @@ interface LineRendererProps {
   showChords: boolean;
   transpose?: number;
   onChordClick?: (chord: string) => void;
-  maxGridMeasures?: number;
 }
 
 const LineRenderer = React.memo(
-  ({
-    line,
-    showChords,
-    transpose = 0,
-    onChordClick,
-    maxGridMeasures,
-  }: LineRendererProps) => {
+  ({ line, showChords, transpose = 0, onChordClick }: LineRendererProps) => {
     if (line.type === "empty") return <div className="h-2"></div>;
     if (line.type === "comment") return <CommentRenderer line={line} />;
     if (line.type === "comment_box") return <CommentBoxRenderer line={line} />;
@@ -701,7 +682,6 @@ const LineRenderer = React.memo(
           showChords={showChords}
           transpose={transpose}
           onChordClick={onChordClick}
-          maxMeasures={maxGridMeasures}
         />
       );
 
@@ -788,99 +768,47 @@ const ChordSectionRenderer = React.memo(
     showChords,
     transpose = 0,
     onChordClick,
-    maxMeasures,
   }: {
     line: LineAST;
     showChords: boolean;
     transpose?: number;
     onChordClick?: (chord: string) => void;
-    maxMeasures?: number;
   }) => {
     if (!showChords) return null;
 
     const measures = line.measures || [];
-    const hasTiming = measures.some((m) =>
-      m.chords.some((c) => c.timing !== undefined && c.timing !== 1),
-    );
-
-    const isGridAligned = maxMeasures !== undefined && maxMeasures > 0;
 
     return (
-      <div className="my-1.5 p-1 w-full flex items-stretch bg-slate-50/80 dark:bg-slate-900/40 rounded-lg border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        {line.startBarline && (
-          <div className="flex items-center justify-center shrink-0 w-6">
-            {renderBarline(line.startBarline)}
-          </div>
-        )}
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        {line.startBarline && renderBarline(line.startBarline)}
 
-        <div
-          className={
-            isGridAligned ? "grid gap-1 flex-1" : "flex flex-wrap flex-1"
-          }
-          style={
-            isGridAligned
-              ? {
-                  gridTemplateColumns: `repeat(${maxMeasures}, minmax(0, 1fr))`,
-                }
-              : undefined
-          }
-        >
-          {measures.map((measure, mIdx) => {
-            return (
-              <div
-                key={mIdx}
-                className={`flex items-stretch border-r border-slate-200/60 dark:border-slate-700/50 last:border-none ${isGridAligned ? "" : "flex-1 min-w-[120px]"}`}
-              >
-                <div className="flex-1 flex items-center justify-evenly gap-1 px-1 py-1">
-                  {measure.chords.map((chordSeg, cIdx) => {
-                    const transposed = transposeChord(
-                      chordSeg.chord,
-                      transpose,
-                    );
-                    const timing = chordSeg.timing ?? 1;
+        {measures.map((measure, mIdx) => (
+          <React.Fragment key={mIdx}>
+            <span className="flex items-baseline gap-1.5">
+              {measure.chords.map((chordSeg, cIdx) => {
+                const transposed = transposeChord(chordSeg.chord, transpose);
+                const timing = chordSeg.timing ?? 1;
 
-                    return (
-                      <span
-                        key={cIdx}
-                        className="flex-1 flex items-center justify-center cursor-pointer rounded transition-colors hover:bg-white dark:hover:bg-slate-800 py-1.5 px-1 min-w-max shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                        style={{ flexGrow: timing }}
-                        onClick={() => onChordClick?.(transposed)}
-                        title={timing !== 1 ? `Duração: ${timing}x` : undefined}
-                      >
-                        <span className="font-bold text-[#0284c7] dark:text-sky-400 font-mono select-none text-[15px] tracking-wide">
-                          {transposed}
-                        </span>
-
-                        {hasTiming && timing !== 1 && (
-                          <span className="ml-0.5 mt-0.5 text-[10px] font-semibold text-indigo-400 dark:text-indigo-500 opacity-80">
-                            {timing}×
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-
-                {measure.endBarline && (
-                  <div className="flex items-center justify-center shrink-0 px-1 w-6 bg-slate-100/50 dark:bg-slate-800/50 rounded-r">
-                    {renderBarline(measure.endBarline)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Se esta linha tiver menos compassos que o maxMeasures, preenchemos as células de grelha em falta */}
-          {isGridAligned &&
-            Array.from({
-              length: Math.max(0, maxMeasures - measures.length),
-            }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="border-r border-slate-200/60 dark:border-slate-700/50 last:border-none bg-slate-50/30 dark:bg-slate-800/10 rounded-sm"
-              ></div>
-            ))}
-        </div>
+                return (
+                  <span
+                    key={cIdx}
+                    className="font-mono text-[14px] text-slate-600 dark:text-slate-400 cursor-pointer hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                    onClick={() => onChordClick?.(transposed)}
+                    title={timing !== 1 ? `Duração: ${timing}x` : undefined}
+                  >
+                    {transposed}
+                    {timing !== 1 && (
+                      <sub className="text-[9px] text-slate-400 dark:text-slate-600 ml-px">
+                        {timing}×
+                      </sub>
+                    )}
+                  </span>
+                );
+              })}
+            </span>
+            {measure.endBarline && renderBarline(measure.endBarline)}
+          </React.Fragment>
+        ))}
       </div>
     );
   },
