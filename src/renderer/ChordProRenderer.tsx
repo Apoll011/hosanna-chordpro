@@ -24,8 +24,7 @@ import { instrumentRegistry } from "../instruments/registry";
 import {
   LineAST,
   SegmentAST,
-  parseChordProDocument,
-  selectVersion,
+  SongAST,
 } from "../parser/parser";
 import { transposeChord } from "../parser/transpose";
 import { ChordRoll } from "./ChordRoll";
@@ -44,22 +43,12 @@ function getDuration(duration: string): string {
 // Props
 // ---------------------------------------------------------------------------
 export interface ChordProPreviewProps {
-  content: string;
-  showChords: boolean;
-  transposeVal?: number;
-  capoVal?: number;
-  onTransposeChange?: (val: number) => void;
-  onCapoChange?: (val: number) => void;
+  song: SongAST;
   twoColumnLayout?: boolean;
   fontSize?: number;
-  /** Instrument id, e.g. "guitar", "piano", "ukulele", or any instrument
-   *  registered via `instrumentRegistry.register(...)`. */
-  instrument?: string;
   showDiagrams?: boolean;
   fileName?: string;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
-  selectedVersionId?: string;
-  onSelectVersion?: (versionId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,68 +56,31 @@ export interface ChordProPreviewProps {
 // ---------------------------------------------------------------------------
 const ChordProRenderer = React.memo(
   ({
-    content,
-    showChords,
-    transposeVal = 0,
-    capoVal = 0,
-    onTransposeChange,
-    onCapoChange,
+    song,
     twoColumnLayout = false,
     fontSize,
-    instrument = "guitar",
     showDiagrams = false,
     fileName,
     scrollContainerRef,
-    selectedVersionId: selectedVersionIdProp,
-    onSelectVersion,
   }: ChordProPreviewProps) => {
-    const [internalVersionId, setInternalVersionId] =
-      useState<string>("default");
-
-    const activeVersionId = selectedVersionIdProp ?? internalVersionId;
-
-    const parsedDocument = useMemo(() => {
-      return parseChordProDocument(content);
-    }, [content]);
-
-    const activeVersion = useMemo(() => {
-      return selectVersion(parsedDocument, activeVersionId);
-    }, [parsedDocument, activeVersionId]);
-
-    const parsedSong = useMemo(() => {
-      return {
-        id: activeVersion.id,
-        name: activeVersion.name,
-        metadata: activeVersion.metadata,
-        sections: activeVersion.body,
-      };
-    }, [activeVersion]);
-
-    const { metadata } = parsedSong;
-
-    const handleVersionChange = useCallback(
-      (id: string) => {
-        setInternalVersionId(id);
-        onSelectVersion?.(id);
-      },
-      [onSelectVersion],
-    );
-
+    const { metadata } = song;
+    const instrument = metadata.instrument ?? "guitar";
+    const showChords = songHasChords(song);
+    const effectiveCapo = Number(metadata.capo ?? 0);
+    const effectiveTranspose = 0;
     const instrumentProfile = instrumentRegistry.get(instrument);
-    const effectiveCapo = instrumentProfile?.supportsCapo ? capoVal : 0;
-    const effectiveTranspose = transposeVal - effectiveCapo;
 
     const soundingKey = useMemo(() => {
-      return transposeChord(metadata.key || "C", transposeVal);
-    }, [metadata.key, transposeVal]);
+      return metadata.key || "C";
+    }, [metadata.key]);
 
     const renderedKey = useMemo(() => {
-      return transposeChord(metadata.key || "C", effectiveTranspose);
-    }, [metadata.key, effectiveTranspose]);
+      return metadata.key || "C";
+    }, [metadata.key]);
 
     const resolvedUniqueChords = useMemo(() => {
       const chords = new Set<string>();
-      for (const section of parsedSong.sections) {
+      for (const section of song.sections) {
         for (const line of section.lines) {
           if (line.segments) {
             for (const seg of line.segments) {
@@ -145,7 +97,7 @@ const ChordProRenderer = React.memo(
         }
       }
       return Array.from(chords);
-    }, [parsedSong]);
+    }, [song]);
 
     const [selectedChord, setSelectedChord] = useState<string | null>(null);
     const [modalInstrument, setModalInstrument] = useState<string>(
@@ -336,7 +288,7 @@ const ChordProRenderer = React.memo(
 
             <ChordRoll
               uniqueChords={resolvedUniqueChords}
-              transposeVal={transposeVal}
+              transposeVal={song ? 0 : transposeVal}
               capoVal={effectiveCapo}
               onChordClick={handleChordClick}
               instrument={instrument}

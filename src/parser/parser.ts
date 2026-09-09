@@ -1,3 +1,5 @@
+import { attachSongTransformations } from "./transformations";
+
 export interface SegmentAST {
   chord: string;
   text: string;
@@ -77,6 +79,12 @@ export interface SongAST {
   default?: ChordProVersion;
   variants?: ChordProVersion[];
   errors?: string[];
+  transpose(semitones: number): SongAST;
+  withCapo(capo: number): SongAST;
+  simplifyChords(level: 0 | 1 | 2 | 3): SongAST;
+  removeChords(cleanText?: boolean): SongAST;
+  selectVariant(id?: string | null): SongAST;
+  instrument(id?: string | null): SongAST;
 }
 
 const TIMING_REGEX = /^(.+?)@([0-9]*\.?[0-9]+)x$/;
@@ -617,7 +625,7 @@ export function selectVersion(
 
 export function parseChordPro(content: string): SongAST {
   const doc = parseChordProDocument(content);
-  return {
+  const song = {
     id: doc.default.id,
     name: doc.default.name,
     metadata: doc.default.metadata,
@@ -626,6 +634,9 @@ export function parseChordPro(content: string): SongAST {
     variants: doc.variants,
     errors: doc.errors,
   };
+  // Methods are attached to parsed songs so transformations remain chainable
+  // without introducing a mutable builder or coupling consumers to a class.
+  return attachSongTransformations(song as SongAST);
 }
 
 export function buildChordProText(

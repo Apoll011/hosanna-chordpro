@@ -1,25 +1,15 @@
 # @hosanna/chordpro
 
-!outdated
-
-> A modern, modular ChordPro toolkit for JavaScript & TypeScript. Includes an AST parser, music-theory transposition engine, chord dictionary with interactive guitar & piano diagrams, universal sheet converter, and React editor & renderer components.
-
-[![npm version](https://img.shields.io/npm/v/@hosanna/chordpro.svg)](https://www.npmjs.com/package/@hosanna/chordpro)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.md)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-3178C6.svg)](https://www.typescriptlang.org/)
-
----
+> A modular ChordPro parser, transformation pipeline, formatter, instrument registry, React renderer, and Ace editor for JavaScript and TypeScript.
 
 ## Features
 
-- **AST Parser**: Full-featured ChordPro AST parser supporting verses, choruses, bridges, grids, tabs, barlines, timing directives (`[Am@1.5x]`), repeats, and rich metadata.
-- **Transposition Engine**: Interval-safe key transposition and smart capo calculation (`getSuggestedCapo`, `transposeChord`, `transposeNote`).
-- **Dynamic Chord Dictionary**: Music theory-driven fingering calculations for piano (keys & pitch classes) and guitar (CAGED barres, open chords, and fret charts).
-- **Universal Sheet Converter**: Converts plain chord-over-lyric text, Ultimate-Guitar tabs, and CifraClub sheets into valid ChordPro format.
-- **Interactive React Renderer**: Beautiful lyric and chord rendering with responsive chord rolls, instrument switching (guitar/piano), YouTube playback synchronization, and print optimization.
-- **Ace ChordPro Editor**: Feature-packed code editor component with autocompletion, section wrapping shortcuts (`Alt+V`, `Alt+R`, `Alt+B`), snippets, and customizable visual settings.
-
----
+- ChordPro AST parsing with metadata, sections, tabs, grids, comments, repeats, and named variants.
+- Immutable, chainable song transformations: transpose, capo, chord simplification, chord removal, variant selection, and instrument selection.
+- Extensible formatting and linting utilities.
+- Registry-based instrument diagrams for guitar, piano, ukulele, and consumer-defined instruments.
+- React rendering from an already transformed `SongAST`.
+- Lazy Ace editor with ChordPro syntax support, snippets, linting, formatting, and transpose commands.
 
 ## Installation
 
@@ -27,153 +17,159 @@
 npm install @hosanna/chordpro
 ```
 
-### Peer Dependencies (Optional if using React UI / Editor)
+React consumers also need the peer dependencies:
 
 ```bash
 npm install react react-dom ace-builds react-ace
 ```
 
----
+## Modular entry points
 
-## Modular Architecture
+| Entry point | Contents |
+| --- | --- |
+| `@hosanna/chordpro` | All public APIs |
+| `@hosanna/chordpro/parser` | Parser, AST types, transformations, transposition, dictionary, and converters |
+| `@hosanna/chordpro/renderer` | `ChordProRenderer`, `ChordRoll`, and diagram components |
+| `@hosanna/chordpro/editor` | `Editor`, `ChordFinder`, Ace modes, snippets, and editor integrations |
+| `@hosanna/chordpro/formatter` | ChordPro formatter and formatter types |
+| `@hosanna/chordpro/instruments` | Instrument profiles and the instrument registry |
 
-`@hosanna/chordpro` is organized into 3 modular entry points:
+## Parse and transform a song
 
-| Entry Point                  | Description                                                               |
-| :--------------------------- | :------------------------------------------------------------------------ |
-| `@hosanna/chordpro/parser`   | AST parsing, transposition, chord dictionary, text-to-ChordPro conversion |
-| `@hosanna/chordpro/renderer` | `ChordProRenderer`, `ChordRoll`, `GuitarDiagram`, `PianoDiagram`          |
-| `@hosanna/chordpro/editor`   | `Editor`, `ChordFinder`, ChordPro Ace modes & snippets                    |
-| `@hosanna/chordpro`          | Re-exports everything from all 3 modules                                  |
+`parseChordPro` returns a `SongAST`. Every transformation returns a new song, so pipelines can be reused safely without mutating the parsed source:
 
----
+```ts
+import { parseChordPro } from "@hosanna/chordpro/parser";
 
-## Quick Start
-
-### 1. Parsing & Transposing ChordPro
-
-```typescript
-import { parseChordPro, transposeChord } from "@hosanna/chordpro/parser";
-
-const chordproText = `
-{title: Amazing Grace}
-{key: G}
-{start_of_verse}
-[G]Amazing [G7]grace, how [C]sweet the [G]sound
-{end_of_verse}
+const source = `
+{title: Hallelujah}
+{key: C}
+{start_of_version: Acoustic}
+[C]Halle---lu---jha
+{end_of_version}
 `;
 
-// Parse into structured AST
-const songAst = parseChordPro(chordproText);
-console.log(songAst.metadata.title); // "Amazing Grace"
-
-// Transpose chords (+2 semitones: G -> A)
-const transposed = transposeChord("G", 2);
-console.log(transposed); // "A"
+const song = parseChordPro(source)
+  .transpose(2)
+  .withCapo(3)
+  .simplifyChords(1)
+  .removeChords(true)
+  .selectVariant("acoustic")
+  .instrument("guitar");
 ```
 
----
+### Transformation operations
 
-### 2. Converting Plain Chords to ChordPro
+| Operation | Description |
+| --- | --- |
+| `.transpose(semitones)` | Transposes every chord, key, and bass note by the requested interval. |
+| `.withCapo(position)` | Stores the capo and moves chord shapes into capo-relative notation. `0` disables it. |
+| `.simplifyChords(level)` | Simplifies chord qualities. `0` original, `1` slightly simplified, `2` beginner, `3` basic triads only. |
+| `.removeChords(cleanText)` | Removes chord annotations from every variant. With `true`, also joins display-only hyphenation such as `Halle---lu---jha`. |
+| `.selectVariant(id)` | Selects a named variant (`null`, `undefined`, or `"default"` selects the default) and returns a song containing only that version. |
+| `.instrument(id)` | Stores the instrument used by downstream renderers. Pass `null` to clear it. |
 
-```typescript
-import { toChordPro } from "@hosanna/chordpro/parser";
+The functional equivalent is available for consumers that prefer an explicit pipeline entry point:
 
-const rawSheet = `
-Title: Let It Be
-Artist: The Beatles
+```ts
+import { transformSong } from "@hosanna/chordpro/parser";
 
-Am         C/G        F          C
-Let it be, let it be, let it be, let it be
-`;
-
-const chordpro = toChordPro(rawSheet);
-console.log(chordpro);
-// Output:
-// {title: Let It Be}
-// {artist: The Beatles}
-// [Am]Let it be, [C/G]let it be, [F]let it be, [C]let it be
+const transformed = transformSong(parseChordPro(source))
+  .transpose(2)
+  .withCapo(3);
 ```
 
----
+The pipeline is extensible: custom transformations can clone a `SongAST`, update its sections or metadata, and return the result for the next operation.
 
-### 3. Rendering a Song in React
+## Render a transformed song
+
+Pass the transformed AST to the renderer. The renderer does not parse source text or apply a second transformation:
 
 ```tsx
-import React, { useState } from "react";
 import { ChordProRenderer } from "@hosanna/chordpro/renderer";
 
-export function SongViewer({ chordproContent }: { chordproContent: string }) {
-  const [transposeVal, setTransposeVal] = useState(0);
+export function SongViewer({ source }: { source: string }) {
+  const song = parseChordPro(source)
+    .selectVariant("acoustic")
+    .transpose(2)
+    .withCapo(3)
+    .instrument("guitar");
 
   return (
-    <div className="h-screen flex flex-col">
-      <ChordProRenderer
-        content={chordproContent}
-        showChords={true}
-        transposeVal={transposeVal}
-        onTransposeChange={setTransposeVal}
-        instrument="guitar"
-        showDiagrams={true}
-      />
-    </div>
+    <ChordProRenderer
+      song={song}
+      showChords
+      showDiagrams
+      instrument={song.metadata.instrument}
+    />
   );
 }
 ```
 
----
+`content` remains available as a backwards-compatible renderer prop. New code should parse and transform once, then pass `song`.
 
-### 4. Embedding the ChordPro Editor
+## Variants
+
+Use version blocks in ChordPro:
+
+```chordpro
+{title: Amazing Grace}
+[G]Amazing grace
+
+{start_of_version: Acoustic}
+[C]Amazing grace
+{end_of_version}
+```
+
+Variant IDs are generated as stable slugs (`"Acoustic"` becomes `"acoustic"`). Variant metadata inherits from the preceding version and can override individual fields.
+
+## Instruments
+
+Instrument diagrams use a registry rather than renderer conditionals:
+
+```ts
+import { instrumentRegistry } from "@hosanna/chordpro/instruments";
+
+instrumentRegistry.register({
+  id: "mandolin",
+  displayName: "Mandolin",
+  category: "string",
+  supportsCapo: true,
+  getFingering: (chord) => resolveMandolinShape(chord),
+  renderDiagram: (shape) => <MandolinDiagram shape={shape} />,
+});
+```
+
+An `InstrumentProfile` resolves a chord into instrument-specific shape data and renders that data. Custom instruments work with `ChordRoll` and `ChordProRenderer` without changing either component.
+
+## Formatting and editor
+
+```ts
+import { formatChordPro } from "@hosanna/chordpro/formatter";
+
+const result = formatChordPro(source, {
+  normalizeNotationAliases: true,
+  expandDirectiveAliases: true,
+});
+```
 
 ```tsx
-import React, { useState } from "react";
 import { Editor } from "@hosanna/chordpro/editor";
 
-export function SongEditor() {
-  const [content, setContent] = useState("{title: New Song}\n[C]Hello world");
-
-  return (
-    <div className="h-96 w-full">
-      <Editor
-        value={content}
-        onChange={setContent}
-        onSave={(val) => console.log("Saved:", val)}
-        settings={{
-          theme: "textmate",
-          fontSize: 14,
-          wordWrap: true,
-          showLineNumbers: true,
-        }}
-      />
-    </div>
-  );
-}
+<Editor
+  value={source}
+  onChange={setSource}
+  onSave={(nextSource) => save(nextSource)}
+  settings={{ theme: "textmate", fontSize: 14, wordWrap: true }}
+/>
 ```
 
----
+The editor includes ChordPro completion, diagnostics, section shortcuts (`Alt+V`, `Alt+R`, `Alt+B`), transpose (`Alt+T`), and formatting (`Ctrl/Cmd+Shift+F`).
 
-### 5. Chord Dictionary & Diagrams
+## Supported directives
 
-```typescript
-import { chordDictionary } from "@hosanna/chordpro/parser";
-
-const fingering = chordDictionary.getFingering("Cmaj7");
-
-console.log(fingering?.guitar?.frets); // [-1, 3, 2, 0, 0, 0]
-console.log(fingering?.piano?.notes); // ["C", "E", "G", "B"]
-```
-
----
-
-## Supported Directives
-
-- **Metadata**: `{title}`, `{subtitle}`, `{artist}`, `{composer}`, `{album}`, `{key}`, `{original_key}`, `{capo}`, `{tempo}`, `{time}`, `{duration}`, `{ccli}`, `{youtube}`
-- **Sections**: `{start_of_verse}` / `{end_of_verse}`, `{start_of_chorus}` / `{end_of_chorus}`, `{start_of_bridge}` / `{end_of_bridge}`, `{start_of_tab}` / `{end_of_tab}`, `{start_of_grid}` / `{end_of_grid}`
-- **Inline shorthand**: `{sov}`, `{eov}`, `{soc}`, `{eoc}`, `{sob}`, `{eob}`, `{c: comment}`, `{cb: comment_box}`
-- **Directives with repeats**: `{repeat: 2}`
-
----
+Metadata includes `title`, `subtitle`, `artist`, `composer`, `album`, `copyright`, `key`, `original_key`, `capo`, `tempo`, `time`, `duration`, `ccli`, and `youtube`. Sections include verses, choruses, bridges, tabs, grids, comments, repeats, and named versions.
 
 ## License
 
-Licensed under the [Apache License, Version 2.0](LICENSE.md).
+Licensed under the [Apache License 2.0](LICENSE.md).
