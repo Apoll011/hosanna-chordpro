@@ -98,15 +98,13 @@ export function SongViewer({ source }: { source: string }) {
   return (
     <ChordProRenderer
       song={song}
-      showChords
       showDiagrams
-      instrument={song.metadata.instrument}
     />
   );
 }
 ```
 
-`content` remains available as a backwards-compatible renderer prop. New code should parse and transform once, then pass `song`.
+The renderer accepts only a transformed `SongAST`. It derives chord visibility from the AST and reads the selected instrument from `song.metadata.instrument`; call `.removeChords(true)` or `.instrument("guitar")` in the pipeline before rendering.
 
 ## Variants
 

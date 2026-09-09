@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   BookOpen,
   CheckCircle2,
-  ChevronDown,
   Disc,
   Flame,
   HelpCircle,
@@ -18,7 +17,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import "../instruments"; // ensure built-in instruments are registered
 import { instrumentRegistry } from "../instruments/registry";
 import {
@@ -37,6 +36,19 @@ function getDuration(duration: string): string {
   } else {
     return `${Math.trunc(seconds / 60)}:${seconds % 60}`;
   }
+
+}
+
+function songHasChords(song: SongAST): boolean {
+  return song.sections.some((section) =>
+    section.lines.some(
+      (line) =>
+        line.segments?.some((segment) => Boolean(segment.chord)) ||
+        line.measures?.some((measure) =>
+          measure.chords.some((segment) => Boolean(segment.chord)),
+        ),
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -68,8 +80,6 @@ const ChordProRenderer = React.memo(
     const showChords = songHasChords(song);
     const effectiveCapo = Number(metadata.capo ?? 0);
     const effectiveTranspose = 0;
-    const instrumentProfile = instrumentRegistry.get(instrument);
-
     const soundingKey = useMemo(() => {
       return metadata.key || "C";
     }, [metadata.key]);
@@ -134,26 +144,6 @@ const ChordProRenderer = React.memo(
                     <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
                       {metadata.title}
                     </h2>
-                    {parsedDocument.variants.length > 0 && (
-                      <div className="relative inline-flex items-center">
-                        <select
-                          value={activeVersion.id}
-                          onChange={(e) => handleVersionChange(e.target.value)}
-                          className="appearance-none bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold pl-2.5 pr-7 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-xs transition-colors"
-                          title="Selecionar versão da música"
-                        >
-                          <option value="default">
-                            {parsedDocument.default.name || "Padrão"}
-                          </option>
-                          {parsedDocument.variants.map((variant) => (
-                            <option key={variant.id} value={variant.id}>
-                              {variant.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="w-3.5 h-3.5 text-indigo-500 pointer-events-none absolute right-2" />
-                      </div>
-                    )}
                   </div>
 
                   {metadata.subtitle && (
@@ -196,7 +186,7 @@ const ChordProRenderer = React.memo(
                       Nº {metadata.songNumber}
                     </span>
                   )}
-                  {(metadata.key || transposeVal !== 0) && (
+                  {metadata.key && (
                     <span className="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-lg border border-indigo-100 dark:border-indigo-950/50 flex items-center gap-1">
                       <Key className="w-3 h-3" />
                       Tom: {soundingKey}
@@ -252,7 +242,7 @@ const ChordProRenderer = React.memo(
                 </div>
               )}
 
-              {(transposeVal !== 0 || effectiveCapo !== 0) && (
+              {effectiveCapo !== 0 && (
                 <div className="mt-4 bg-indigo-50 dark:bg-indigo-950/40 text-xs px-3 py-2 rounded-xl text-indigo-700 dark:text-indigo-300 flex items-center justify-between border border-indigo-100 dark:border-indigo-950/50 flex-wrap gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold">
@@ -270,26 +260,14 @@ const ChordProRenderer = React.memo(
                       </span>
                     )}
                   </div>
-                  {(onTransposeChange || onCapoChange) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onTransposeChange?.(0);
-                        onCapoChange?.(0);
-                      }}
-                      className="text-[10px] font-bold hover:underline underline-offset-2 uppercase text-indigo-600 dark:text-indigo-400 cursor-pointer"
-                    >
-                      Repor Tom / Capo
-                    </button>
-                  )}
                 </div>
               )}
             </div>
 
             <ChordRoll
               uniqueChords={resolvedUniqueChords}
-              transposeVal={song ? 0 : transposeVal}
-              capoVal={effectiveCapo}
+              transposeVal={0}
+              capoVal={0}
               onChordClick={handleChordClick}
               instrument={instrument}
               showDiagrams={showDiagrams}
@@ -305,7 +283,7 @@ const ChordProRenderer = React.memo(
               }`}
               style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
             >
-              {parsedSong.sections.map((section, secIdx) => {
+              {song.sections.map((section, secIdx) => {
                 const isChorus = section.type === "chorus";
                 const isBridge = section.type === "bridge";
 
