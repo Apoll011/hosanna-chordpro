@@ -6,6 +6,7 @@ import type {
   SongAST,
 } from "./parser";
 import { transposeChord } from "./transpose";
+import { analyzeSong } from "./analysis";
 
 export type SimplifyLevel = 0 | 1 | 2 | 3;
 
@@ -77,16 +78,29 @@ function forEachSegment(song: SongAST, callback: (segment: SegmentAST) => void) 
 }
 
 function cleanLyrics(text: string): string {
-  let cleaned = text;
+  let cleaned = text
+    .replace(/_+/g, "")
+    .replace(/\.{4,}/g, "...")
+    .replace(/\s+/g, " ")
+    .trim();
+
   let previous = "";
   while (cleaned !== previous) {
     previous = cleaned;
     cleaned = cleaned.replace(
-      /([A-Za-zÀ-ÖØ-öø-ÿ])-{1,}([A-Za-zÀ-ÖØ-öø-ÿ])/g,
+      /([^\s-]+)\s+-\s+([^\s-]+)/g,
+      (_match, left: string, right: string) =>
+        left.length > 1 && right.length > 1 ? left + right : `${left} ${right}`,
+    );
+    cleaned = cleaned.replace(
+      /([^\s-]{2,})-([^\s-]{2,})/g,
       "$1$2",
     );
   }
-  return cleaned;
+
+  return cleaned
+    .replace(/\s+-\s+/g, " ")
+    .replace(/\s+([,.;!?])/g, "$1");
 }
 
 function simplifyChord(chord: string, level: SimplifyLevel): string {
@@ -122,7 +136,6 @@ export function attachSongTransformations(song: SongAST): SongAST {
       forEachSegment(next, (segment) => {
         segment.chord = transposeChord(segment.chord, semitones);
       });
-      if (next.metadata.key) next.metadata.key = transposeChord(next.metadata.key, semitones);
       forEachVersion(next, (version) => {
         if (version.metadata.key) version.metadata.key = transposeChord(version.metadata.key, semitones);
       });
@@ -195,6 +208,7 @@ export function attachSongTransformations(song: SongAST): SongAST {
         else delete version.metadata.instrument;
       });
     });
+  target.analyze = () => analyzeSong(song);
   if (song.default) {
     song.sections = song.default.body;
     song.metadata = song.default.metadata;

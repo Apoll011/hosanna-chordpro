@@ -85,6 +85,7 @@ export interface SongAST {
   removeChords(cleanText?: boolean): SongAST;
   selectVariant(id?: string | null): SongAST;
   instrument(id?: string | null): SongAST;
+  analyze(): import("./analysis").SongAnalysis;
 }
 
 const TIMING_REGEX = /^(.+?)@([0-9]*\.?[0-9]+)x$/;

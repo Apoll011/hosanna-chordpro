@@ -79,7 +79,6 @@ const ChordProRenderer = React.memo(
     const instrument = metadata.instrument ?? "guitar";
     const showChords = songHasChords(song);
     const effectiveCapo = Number(metadata.capo ?? 0);
-    const effectiveTranspose = 0;
     const soundingKey = useMemo(() => {
       return metadata.key || "C";
     }, [metadata.key]);
@@ -266,8 +265,6 @@ const ChordProRenderer = React.memo(
 
             <ChordRoll
               uniqueChords={resolvedUniqueChords}
-              transposeVal={0}
-              capoVal={0}
               onChordClick={handleChordClick}
               instrument={instrument}
               showDiagrams={showDiagrams}
@@ -324,7 +321,7 @@ const ChordProRenderer = React.memo(
                             key={lineIdx}
                             line={line}
                             showChords={showChords}
-                            transpose={effectiveTranspose}
+                            transpose={0}
                             onChordClick={handleChordClick}
                           />
                         ))}
@@ -390,7 +387,7 @@ const ChordProRenderer = React.memo(
                               key={lineIdx}
                               line={line}
                               showChords={showChords}
-                              transpose={effectiveTranspose}
+                              transpose={0}
                               onChordClick={handleChordClick}
                             />
                           ))
@@ -466,7 +463,7 @@ const ChordProRenderer = React.memo(
                           key={lineIdx}
                           line={line}
                           showChords={showChords}
-                          transpose={effectiveTranspose}
+                          transpose={0}
                           onChordClick={handleChordClick}
                         />
                       ))}

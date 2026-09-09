@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { transposeChord } from "../parser/transpose";
 import "../instruments"; // ensure built-in instruments are registered
 import { instrumentRegistry } from "../instruments/registry";
 
@@ -9,8 +8,6 @@ export { PianoDiagram } from "../instruments/piano";
 
 export interface ChordRollProps {
   uniqueChords: string[];
-  transposeVal: number;
-  capoVal?: number;
   onChordClick?: (chord: string) => void;
   /** Instrument id, e.g. "guitar", "piano", "ukulele", or any instrument
    *  registered via `instrumentRegistry.register(...)`. */
@@ -21,29 +18,23 @@ export interface ChordRollProps {
 
 export function ChordRoll({
   uniqueChords,
-  transposeVal,
-  capoVal = 0,
   onChordClick,
   instrument,
   showDiagrams,
   showChords,
 }: ChordRollProps) {
   const profile = instrumentRegistry.get(instrument);
-  const applyCapo = !!profile?.supportsCapo;
-  const effectiveTranspose = transposeVal - (applyCapo ? capoVal : 0);
-
   const chordItems = useMemo(() => {
     if (!profile) return [];
     return uniqueChords.map((chord) => {
-      const transposed = transposeChord(chord, effectiveTranspose);
-      const fingering = profile.getFingering(transposed);
+      const fingering = profile.getFingering(chord);
       return {
         original: chord,
-        transposed,
+        transposed: chord,
         fingering,
       };
     });
-  }, [uniqueChords, effectiveTranspose, profile]);
+  }, [uniqueChords, profile]);
 
   if (
     uniqueChords.length === 0 ||
@@ -53,7 +44,6 @@ export function ChordRoll({
   )
     return null;
 
-  const isGuitarLike = profile.category === "string";
   const cardWidthClass = profile.layoutWidthClass ?? "w-24";
 
   return (
@@ -63,13 +53,6 @@ export function ChordRoll({
       onTouchMove={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
     >
-      {isGuitarLike && applyCapo && capoVal > 0 && (
-        <div className="px-4 mb-2 flex items-center justify-between">
-          <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-900/40">
-            Capo na {capoVal}ª casa — acordes em formato relativo
-          </span>
-        </div>
-      )}
       {/* Scrollable list integrated seamlessly into the background */}
       <div className="flex flex-row overflow-x-auto gap-6 py-2 px-4 no-scrollbar scroll-smooth">
         {chordItems.map((item, idx) => {

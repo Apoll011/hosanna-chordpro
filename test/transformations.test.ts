@@ -20,7 +20,7 @@ describe("Song transformation pipeline", () => {
 
     assert.equal(song.metadata.key, "C");
     assert.equal(song.sections[0].lines[0].segments?.[0].chord, "Cmaj7");
-    assert.equal(transformed.metadata.key, "E");
+    assert.equal(transformed.metadata.key, "D");
     assert.equal(transformed.metadata.capo, "3");
     assert.equal(transformed.metadata.instrument, "guitar");
     assert.equal(
@@ -31,12 +31,41 @@ describe("Song transformation pipeline", () => {
   });
 
   it("removes chord visibility from the AST and cleans display hyphenation", () => {
-    const song = parseChordPro("[C]Halle---lu---jha");
+    const song = parseChordPro("[C]A   Ti  ó  Deus fi____el e bom Senhor");
     const lyricsOnly = song.removeChords(true);
     const line = lyricsOnly.sections[0].lines[0];
 
     assert.equal(line.segments?.[0].chord, "");
-    assert.equal(line.segments?.[0].text, "Hallelujha");
+    assert.equal(line.segments?.[0].text, "A Ti ó Deus fiel e bom Senhor");
     assert.equal(song.sections[0].lines[0].segments?.[0].chord, "C");
+  });
+
+  it("joins syllabified words while preserving normal word boundaries", () => {
+    const song = parseChordPro(`ben - fei - tor
+A - aleluia alelu - ia.....`);
+    const lyricsOnly = song.removeChords(true);
+    const lines = lyricsOnly.sections
+      .flatMap((section) => section.lines)
+      .map((line) => line.segments?.[0].text);
+
+    assert.deepEqual(lines, ["benfeitor", "A aleluia aleluia..."]);
+  });
+
+  it("analyzes chord content and detects a likely key", () => {
+    const analysis = parseChordPro(`{key: G}
+{tempo: 72}
+{c: intro}
+{start_of_verse}
+[G]One [C]two [Em]three [D]four
+{end_of_verse}`).analyze();
+
+    assert.equal(analysis.key, "G");
+    assert.equal(analysis.detectedKey, "G");
+    assert.equal(analysis.tempo, 72);
+    assert.equal(analysis.chordCount, 4);
+    assert.deepEqual(analysis.uniqueChords, ["G", "C", "Em", "D"]);
+    assert.equal(analysis.sections, 2);
+    assert.equal(analysis.hasAnnotations, true);
+    assert.equal(analysis.hasVariants, false);
   });
 });

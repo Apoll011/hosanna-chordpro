@@ -81,6 +81,28 @@ const transformed = transformSong(parseChordPro(source))
 
 The pipeline is extensible: custom transformations can clone a `SongAST`, update its sections or metadata, and return the result for the next operation.
 
+## Analyze a song
+
+`analyze()` returns structural and harmonic information without changing the song:
+
+```ts
+const analysis = parseChordPro(source).analyze();
+// {
+//   key: "G",
+//   detectedKey: "G",
+//   tempo: 72,
+//   chordCount: 14,
+//   uniqueChords: ["G", "C", "Em", "D"],
+//   sections: 8,
+//   lyricsLength: 1240,
+//   hasTabs: false,
+//   hasAnnotations: true,
+//   hasVariants: true
+// }
+```
+
+`detectedKey` is inferred from chord roots, chord qualities, and diatonic major/minor scale membership. It is independent from the optional declared `key`, so consumers can compare source metadata with the detected harmonic center.
+
 ## Render a transformed song
 
 Pass the transformed AST to the renderer. The renderer does not parse source text or apply a second transformation:
