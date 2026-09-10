@@ -25,14 +25,14 @@ npm install react react-dom ace-builds react-ace
 
 ## Modular entry points
 
-| Entry point | Contents |
-| --- | --- |
-| `@hosanna/chordpro` | All public APIs |
-| `@hosanna/chordpro/parser` | Parser, AST types, transformations, transposition, dictionary, and converters |
-| `@hosanna/chordpro/renderer` | `ChordProRenderer`, `ChordRoll`, and diagram components |
-| `@hosanna/chordpro/editor` | `Editor`, `ChordFinder`, Ace modes, snippets, and editor integrations |
-| `@hosanna/chordpro/formatter` | ChordPro formatter and formatter types |
-| `@hosanna/chordpro/instruments` | Instrument profiles and the instrument registry |
+| Entry point                     | Contents                                                                      |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| `@hosanna/chordpro`             | All public APIs                                                               |
+| `@hosanna/chordpro/parser`      | Parser, AST types, transformations, transposition, dictionary, and converters |
+| `@hosanna/chordpro/renderer`    | `ChordProRenderer`, `ChordRoll`, and diagram components                       |
+| `@hosanna/chordpro/editor`      | `Editor`, `ChordFinder`, Ace modes, snippets, and editor integrations         |
+| `@hosanna/chordpro/formatter`   | ChordPro formatter and formatter types                                        |
+| `@hosanna/chordpro/instruments` | Instrument profiles and the instrument registry                               |
 
 ## Parse and transform a song
 
@@ -60,14 +60,14 @@ const song = parseChordPro(source)
 
 ### Transformation operations
 
-| Operation | Description |
-| --- | --- |
-| `.transpose(semitones)` | Transposes every chord, key, and bass note by the requested interval. |
-| `.withCapo(position)` | Stores the capo and moves chord shapes into capo-relative notation. `0` disables it. |
-| `.simplifyChords(level)` | Simplifies chord qualities. `0` original, `1` slightly simplified, `2` beginner, `3` basic triads only. |
-| `.removeChords(cleanText)` | Removes chord annotations from every variant. With `true`, also joins display-only hyphenation such as `Halle---lu---jha`. |
-| `.selectVariant(id)` | Selects a named variant (`null`, `undefined`, or `"default"` selects the default) and returns a song containing only that version. |
-| `.instrument(id)` | Stores the instrument used by downstream renderers. Pass `null` to clear it. |
+| Operation                  | Description                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `.transpose(semitones)`    | Transposes every chord, key, and bass note by the requested interval.                                                              |
+| `.withCapo(position)`      | Stores the capo and moves chord shapes into capo-relative notation. `0` disables it.                                               |
+| `.simplifyChords(level)`   | Simplifies chord qualities. `0` original, `1` slightly simplified, `2` beginner, `3` basic triads only.                            |
+| `.removeChords(cleanText)` | Removes chord annotations from every variant. With `true`, also joins display-only hyphenation such as `Halle---lu---jha`.         |
+| `.selectVariant(id)`       | Selects a named variant (`null`, `undefined`, or `"default"` selects the default) and returns a song containing only that version. |
+| `.instrument(id)`          | Stores the instrument used by downstream renderers. Pass `null` to clear it.                                                       |
 
 The functional equivalent is available for consumers that prefer an explicit pipeline entry point:
 
@@ -117,12 +117,7 @@ export function SongViewer({ source }: { source: string }) {
     .withCapo(3)
     .instrument("guitar");
 
-  return (
-    <ChordProRenderer
-      song={song}
-      showDiagrams
-    />
-  );
+  return <ChordProRenderer song={song} showDiagrams />;
 }
 ```
 
@@ -181,7 +176,7 @@ import { Editor } from "@hosanna/chordpro/editor";
   onChange={setSource}
   onSave={(nextSource) => save(nextSource)}
   settings={{ theme: "textmate", fontSize: 14, wordWrap: true }}
-/>
+/>;
 ```
 
 The editor includes ChordPro completion, diagnostics, section shortcuts (`Alt+V`, `Alt+R`, `Alt+B`), transpose (`Alt+T`), and formatting (`Ctrl/Cmd+Shift+F`).

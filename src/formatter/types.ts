@@ -29,9 +29,7 @@ export interface FormatChange {
 }
 
 export type FormatWarningType =
-  | "malformed_directive"
-  | "unknown_directive"
-  | "possible_invalid_chord";
+  "malformed_directive" | "unknown_directive" | "possible_invalid_chord";
 
 export interface FormatWarning {
   type: FormatWarningType;

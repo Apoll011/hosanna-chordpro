@@ -23,10 +23,7 @@ describe("Song transformation pipeline", () => {
     assert.equal(transformed.metadata.key, "D");
     assert.equal(transformed.metadata.capo, "3");
     assert.equal(transformed.metadata.instrument, "guitar");
-    assert.equal(
-      transformed.sections[0].lines[0].segments?.[0].chord,
-      "Abm",
-    );
+    assert.equal(transformed.sections[0].lines[0].segments?.[0].chord, "Abm");
     assert.equal(transformed.variants?.length, 0);
   });
 

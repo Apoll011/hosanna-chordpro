@@ -33,17 +33,34 @@ e|---0---|
 Lyrics
 {end_of_verse}`);
     assert.equal(song.metadata.duration, "83");
-    assert.equal(song.sections.some((section) => section.type === "grid"), true);
-    assert.equal(song.sections.some((section) => section.type === "tab"), true);
-    assert.equal(song.sections.some((section) => section.repeat === "2"), true);
-    assert.equal(song.sections.some((section) => section.lines[0]?.type === "comment_box"), true);
+    assert.equal(
+      song.sections.some((section) => section.type === "grid"),
+      true,
+    );
+    assert.equal(
+      song.sections.some((section) => section.type === "tab"),
+      true,
+    );
+    assert.equal(
+      song.sections.some((section) => section.repeat === "2"),
+      true,
+    );
+    assert.equal(
+      song.sections.some((section) => section.lines[0]?.type === "comment_box"),
+      true,
+    );
   });
 
   it("selects variants and serializes metadata", () => {
-    const document = parseChordProDocument("{title: Song}\n{start_of_version: Live}\nLive\n{end_of_version}");
+    const document = parseChordProDocument(
+      "{title: Song}\n{start_of_version: Live}\nLive\n{end_of_version}",
+    );
     assert.equal(selectVersion(document, "live").name, "Live");
     assert.equal(slugifyVariantName("  Versão Ao Vivo! "), "versao-ao-vivo");
-    assert.match(buildChordProText({ title: "Song", key: "G" }, "[G]Lyrics"), /\{key: G\}/);
+    assert.match(
+      buildChordProText({ title: "Song", key: "G" }, "[G]Lyrics"),
+      /\{key: G\}/,
+    );
     assert.equal(parseChordPro("{title: Song}").analyze().sections, 0);
   });
 });

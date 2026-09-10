@@ -16,7 +16,9 @@ describe("ChordPro linter", () => {
   });
 
   it("accepts valid annotations and chords", () => {
-    const diagnostics = lintChordPro("{start_of_verse}\n[Cmaj7@2x]Hello\n{end_of_verse}");
+    const diagnostics = lintChordPro(
+      "{start_of_verse}\n[Cmaj7@2x]Hello\n{end_of_verse}",
+    );
     assert.equal(diagnostics.length, 0);
   });
 });

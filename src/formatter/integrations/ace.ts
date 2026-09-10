@@ -80,16 +80,14 @@ function getDocumentContent(editor: any): string | null {
  * Apply formatted content to the Ace editor as a single atomic (undoable) operation.
  * Preserves the cursor position as closely as possible.
  */
-function applyFormattedDocument(
-  editor: any,
-  result: FormatResult,
-): void {
+function applyFormattedDocument(editor: any, result: FormatResult): void {
   if (!result.changed) return;
 
   // Record cursor position before the change
-  const cursor = typeof editor.getCursorPosition === "function"
-    ? editor.getCursorPosition()
-    : { row: 0, column: 0 };
+  const cursor =
+    typeof editor.getCursorPosition === "function"
+      ? editor.getCursorPosition()
+      : { row: 0, column: 0 };
 
   // Ace's setValue with -1 keeps cursor at end; with 1 moves to start.
   // We'll manage cursor manually.
@@ -139,9 +137,10 @@ function applyFormattedSelection(
     if (selection && typeof selection.setRange === "function") {
       const newLines = result.content.split("\n");
       const endRow = range.start.row + newLines.length - 1;
-      const endCol = newLines.length === 1
-        ? range.start.column + newLines[0].length
-        : newLines[newLines.length - 1].length;
+      const endCol =
+        newLines.length === 1
+          ? range.start.column + newLines[0].length
+          : newLines[newLines.length - 1].length;
       selection.setRange({
         start: range.start,
         end: { row: endRow, column: endCol },
@@ -192,11 +191,11 @@ export function formatAceSelection(
 ): FormatResult | null {
   if (!editor) return null;
 
-  const selection = typeof editor.getSelection === "function"
-    ? editor.getSelection()
-    : null;
+  const selection =
+    typeof editor.getSelection === "function" ? editor.getSelection() : null;
 
-  const hasSelection = selection &&
+  const hasSelection =
+    selection &&
     typeof selection.isEmpty === "function" &&
     !selection.isEmpty();
 

@@ -36,12 +36,7 @@ export function ChordRoll({
     });
   }, [uniqueChords, profile]);
 
-  if (
-    uniqueChords.length === 0 ||
-    !showDiagrams ||
-    !showChords ||
-    !profile
-  )
+  if (uniqueChords.length === 0 || !showDiagrams || !showChords || !profile)
     return null;
 
   const cardWidthClass = profile.layoutWidthClass ?? "w-24";
@@ -57,7 +52,7 @@ export function ChordRoll({
       <div className="flex flex-row overflow-x-auto gap-6 py-2 px-4 no-scrollbar scroll-smooth">
         {chordItems.map((item, idx) => {
           const subLabel = item.fingering
-            ? profile.getSubLabel?.(item.fingering.shape) ?? null
+            ? (profile.getSubLabel?.(item.fingering.shape) ?? null)
             : null;
 
           return (

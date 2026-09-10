@@ -67,7 +67,11 @@ function svgFor({ frets, fingers }: UkuleleShape) {
   const startFret = maxFret > 4 ? Math.min(...frets.filter((f) => f > 0)) : 1;
 
   return (
-    <svg width={width} height={height} className="text-m3-text dark:text-m3-dark-text select-none">
+    <svg
+      width={width}
+      height={height}
+      className="text-m3-text dark:text-m3-dark-text select-none"
+    >
       <line
         x1={getStringX(0)}
         y1={getFretY(0) - (startFret === 1 ? 3 : 0)}
@@ -132,7 +136,12 @@ function svgFor({ frets, fingers }: UkuleleShape) {
           const finger = fingers ? fingers[stringIdx] : 0;
           return (
             <g key={stringIdx}>
-              <circle cx={cx} cy={cy} r={5} className="fill-m3-primary dark:fill-m3-dark-primary" />
+              <circle
+                cx={cx}
+                cy={cy}
+                r={5}
+                className="fill-m3-primary dark:fill-m3-dark-primary"
+              />
               {finger > 0 && (
                 <text
                   x={cx}

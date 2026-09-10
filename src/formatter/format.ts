@@ -3,7 +3,12 @@
  * No UI dependencies.
  */
 
-import type { FormatChange, FormatOptions, FormatResult, FormatWarning } from "./types";
+import type {
+  FormatChange,
+  FormatOptions,
+  FormatResult,
+  FormatWarning,
+} from "./types";
 import { normalizeLine } from "./normalize";
 
 // ---------------------------------------------------------------------------
@@ -24,7 +29,10 @@ const DEFAULT_OPTIONS: Required<FormatOptions> = {
 /**
  * Normalize line endings to LF (\n).
  */
-function normalizeLineEndings(content: string, changes: FormatChange[]): string {
+function normalizeLineEndings(
+  content: string,
+  changes: FormatChange[],
+): string {
   const original = content;
   // CRLF -> LF, then CR -> LF
   const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -161,11 +169,11 @@ export function formatChordPro(
   // --- Step 5: Normalize each line ---
   const normalizedLines: string[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const { content: normalizedLine, changes, warnings } = normalizeLine(
-      lines[i],
-      i + 1,
-      opts,
-    );
+    const {
+      content: normalizedLine,
+      changes,
+      warnings,
+    } = normalizeLine(lines[i], i + 1, opts);
     normalizedLines.push(normalizedLine);
     allChanges.push(...changes);
     allWarnings.push(...warnings);

@@ -4,10 +4,7 @@
  */
 
 import type { FormatChange, FormatOptions, FormatWarning } from "./types";
-import {
-  isValidChord,
-  normalizeChordContent,
-} from "./chords";
+import { isValidChord, normalizeChordContent } from "./chords";
 import {
   buildDirectiveLine,
   detectMalformedDirective,
@@ -133,7 +130,10 @@ function normalizeChordLyricSpacing(
 ): string {
   const original = line;
   // Remove space between a closing bracket ']' and a non-whitespace, non-'[' character
-  const result = line.replace(/\]\s+([^\s\[])/g, (_: string, char: string) => "]" + char);
+  const result = line.replace(
+    /\]\s+([^\s\[])/g,
+    (_: string, char: string) => "]" + char,
+  );
   if (result !== original) {
     changes.push({
       type: "chord_spacing",
@@ -208,7 +208,12 @@ function normalizeDirectiveLine(
     let changeType: FormatChange["type"] = "directive_spacing";
     if (parsed.wasAlias && options.expandDirectiveAliases) {
       changeType = "directive_name";
-    } else if (parsed.name === "key" || parsed.name === "original_key" || parsed.name === "tempo" || parsed.name === "time") {
+    } else if (
+      parsed.name === "key" ||
+      parsed.name === "original_key" ||
+      parsed.name === "tempo" ||
+      parsed.name === "time"
+    ) {
       changeType = "metadata";
     }
 

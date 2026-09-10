@@ -20,33 +20,88 @@ const UNICODE_ACCIDENTALS: [string, string][] = [
  */
 const KNOWN_QUALITIES = [
   // Extended / altered
-  "maj13", "min13", "m13", "13",
-  "maj11", "min11", "m11", "11",
-  "maj9", "min9", "m9", "9",
-  "maj7#5", "maj7b5", "m7b5", "m7-5", "m7#5", "min7b5",
-  "7sus4", "7sus2", "7b9", "7#9", "7b5", "7#5",
-  "minMaj7", "mMaj7", "mM7",
-  "minAdd9", "madd9", "add9", "add11", "add13", "add2", "add4",
-  "maj7", "Maj7", "min7", "Min7", "m7", "M7", "7",
-  "dim7", "aug7", "dim", "aug",
-  "sus4", "sus2", "sus",
-  "6/9", "69", "m6", "min6", "6",
+  "maj13",
+  "min13",
+  "m13",
+  "13",
+  "maj11",
+  "min11",
+  "m11",
+  "11",
+  "maj9",
+  "min9",
+  "m9",
+  "9",
+  "maj7#5",
+  "maj7b5",
+  "m7b5",
+  "m7-5",
+  "m7#5",
+  "min7b5",
+  "7sus4",
+  "7sus2",
+  "7b9",
+  "7#9",
+  "7b5",
+  "7#5",
+  "minMaj7",
+  "mMaj7",
+  "mM7",
+  "minAdd9",
+  "madd9",
+  "add9",
+  "add11",
+  "add13",
+  "add2",
+  "add4",
+  "maj7",
+  "Maj7",
+  "min7",
+  "Min7",
+  "m7",
+  "M7",
+  "7",
+  "dim7",
+  "aug7",
+  "dim",
+  "aug",
+  "sus4",
+  "sus2",
+  "sus",
+  "6/9",
+  "69",
+  "m6",
+  "min6",
+  "6",
   "5",
-  "maj", "Maj", "min", "Min", "m", "M",
+  "maj",
+  "Maj",
+  "min",
+  "Min",
+  "m",
+  "M",
   // Common symbols
-  "Δ7", "Δ9", "Δ", "°7", "°", "ø7", "ø", "-7", "-"
+  "Δ7",
+  "Δ9",
+  "Δ",
+  "°7",
+  "°",
+  "ø7",
+  "ø",
+  "-7",
+  "-",
 ];
 
-const QUALITY_REGEX_PART = KNOWN_QUALITIES
-  .map((q) => q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-  .join("|");
+const QUALITY_REGEX_PART = KNOWN_QUALITIES.map((q) =>
+  q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+).join("|");
 
 // Strict regex to recognise a chord:
 // Root: A-G (or a-g for lowercase normalization) + optional accidental (# or b)
 // Optional quality or parens
 // Optional slash bass (/A-G + optional accidental)
 const STRICT_CHORD_REGEX = new RegExp(
-  `^([a-gA-G])([#b]?)(?:${QUALITY_REGEX_PART})?(?:\\([^)]*\\))?(?:\\/([a-gA-G])([#b]?))?$`
+  `^([a-gA-G])([#b]?)(?:${QUALITY_REGEX_PART})?(?:\\([^)]*\\))?(?:\\/([a-gA-G])([#b]?))?$`,
 );
 
 /**
@@ -74,7 +129,8 @@ export function isValidChord(token: string): boolean {
 
   // Exclude common non-chord bracketed words explicitly if they start with A-G
   // E.g. [Bridge], [Chorus], [Ending], [Fade], [Guitar]
-  const nonChordWords = /^(Bridge|Chorus|Ending|Fade|Guitar|Break|Coda|Intro|Outro|Solo|Verse|Interlude)/i;
+  const nonChordWords =
+    /^(Bridge|Chorus|Ending|Fade|Guitar|Break|Coda|Intro|Outro|Solo|Verse|Interlude)/i;
   if (nonChordWords.test(normalizedAccidentals)) {
     return false;
   }
@@ -110,11 +166,13 @@ export function normalizeNotationAlias(chordQualityAndRest: string): string {
 export function normalizeChordRoot(chord: string): string {
   if (!chord) return chord;
 
-  return chord.replace(/^([a-gA-G])([#b]?)/, (_, root, acc) => {
-    return root.toUpperCase() + acc;
-  }).replace(/\/([a-gA-G])([#b]?)/, (_, bassRoot, bassAcc) => {
-    return "/" + bassRoot.toUpperCase() + bassAcc;
-  });
+  return chord
+    .replace(/^([a-gA-G])([#b]?)/, (_, root, acc) => {
+      return root.toUpperCase() + acc;
+    })
+    .replace(/\/([a-gA-G])([#b]?)/, (_, bassRoot, bassAcc) => {
+      return "/" + bassRoot.toUpperCase() + bassAcc;
+    });
 }
 
 /**
@@ -143,7 +201,7 @@ export function normalizeChordParens(chord: string): string {
  */
 export function normalizeChordContent(
   raw: string,
-  options: { normalizeNotationAliases: boolean }
+  options: { normalizeNotationAliases: boolean },
 ): { result: string; changed: boolean } {
   let result = raw.trim();
 

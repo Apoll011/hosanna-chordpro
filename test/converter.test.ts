@@ -9,8 +9,14 @@ import {
 
 describe("text-to-ChordPro conversion", () => {
   it("detects supported source formats", () => {
-    assert.equal(detectSourceFormat("[Verse]\nC   G\nHello"), "ultimate-guitar");
-    assert.equal(detectSourceFormat("Tom: G\nIntérprete: Banda\nC G\nLetra"), "cifraclub");
+    assert.equal(
+      detectSourceFormat("[Verse]\nC   G\nHello"),
+      "ultimate-guitar",
+    );
+    assert.equal(
+      detectSourceFormat("Tom: G\nIntérprete: Banda\nC G\nLetra"),
+      "cifraclub",
+    );
     assert.equal(detectSourceFormat("C       G\nHello"), "plain");
   });
 

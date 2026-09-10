@@ -20,11 +20,7 @@ import {
 import React, { useMemo, useState } from "react";
 import "../instruments"; // ensure built-in instruments are registered
 import { instrumentRegistry } from "../instruments/registry";
-import {
-  LineAST,
-  SegmentAST,
-  SongAST,
-} from "../parser/parser";
+import { LineAST, SegmentAST, SongAST } from "../parser/parser";
 import { transposeChord } from "../parser/transpose";
 import { ChordRoll } from "./ChordRoll";
 
@@ -36,7 +32,6 @@ function getDuration(duration: string): string {
   } else {
     return `${Math.trunc(seconds / 60)}:${seconds % 60}`;
   }
-
 }
 
 function songHasChords(song: SongAST): boolean {
@@ -109,13 +104,8 @@ const ChordProRenderer = React.memo(
     }, [song]);
 
     const [selectedChord, setSelectedChord] = useState<string | null>(null);
-    const [modalInstrument, setModalInstrument] = useState<string>(
-      instrument,
-    );
-    const availableInstruments = useMemo(
-      () => instrumentRegistry.list(),
-      [],
-    );
+    const [modalInstrument, setModalInstrument] = useState<string>(instrument);
+    const availableInstruments = useMemo(() => instrumentRegistry.list(), []);
 
     const modalFingering = useMemo(() => {
       if (!selectedChord) return null;
@@ -532,7 +522,7 @@ const ChordProRenderer = React.memo(
 
               <div className="py-4 flex flex-col items-center justify-center min-h-[140px] border border-m3-border/30 dark:border-m3-dark-border/30 rounded-2xl bg-m3-sidebar/30 dark:bg-m3-dark-sidebar/10">
                 {modalFingering ? (
-                  instrumentRegistry
+                  (instrumentRegistry
                     .get(modalInstrument)
                     ?.renderDiagram(modalFingering.shape) ?? (
                     <div className="text-center p-4">
@@ -543,7 +533,7 @@ const ChordProRenderer = React.memo(
                         não pôde ser calculado.
                       </p>
                     </div>
-                  )
+                  ))
                 ) : (
                   <div className="text-center p-6 space-y-2">
                     <HelpCircle className="w-8 h-8 mx-auto text-amber-500 opacity-80" />
@@ -681,7 +671,8 @@ const COMMENT_BOX_STYLES: Record<
 };
 
 const CommentBoxRenderer = React.memo(({ line }: { line: LineAST }) => {
-  const style = COMMENT_BOX_STYLES[line.style ?? "info"] ?? COMMENT_BOX_STYLES.info;
+  const style =
+    COMMENT_BOX_STYLES[line.style ?? "info"] ?? COMMENT_BOX_STYLES.info;
   const { Icon } = style;
   return (
     <div

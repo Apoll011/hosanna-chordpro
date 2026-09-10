@@ -41,7 +41,10 @@ function chordRoot(chord: string): number | undefined {
 function detectKey(chords: string[]): string | undefined {
   const usable = chords
     .map((chord) => ({ chord, root: chordRoot(chord) }))
-    .filter((entry): entry is { chord: string; root: number } => entry.root !== undefined);
+    .filter(
+      (entry): entry is { chord: string; root: number } =>
+        entry.root !== undefined,
+    );
   if (usable.length === 0) return undefined;
 
   let best: { score: number; root: number; minor: boolean } | undefined;
@@ -66,7 +69,9 @@ function detectKey(chords: string[]): string | undefined {
 export function analyzeSong(song: SongAST): SongAnalysis {
   const allSegments = segments(song);
   const chordSegments = allSegments.filter((segment) => segment.chord);
-  const uniqueChords = [...new Set(chordSegments.map((segment) => segment.chord))];
+  const uniqueChords = [
+    ...new Set(chordSegments.map((segment) => segment.chord)),
+  ];
   const lyricsLength = versions(song)
     .flatMap((version) => version.body)
     .flatMap((section) => section.lines)
@@ -74,11 +79,12 @@ export function analyzeSong(song: SongAST): SongAnalysis {
     .map((line) => line.segments?.map((segment) => segment.text).join("") ?? "")
     .join("").length;
   const hasAnnotations = versions(song).some((version) =>
-    version.body.some((section) =>
-      section.type === "comment" ||
-      section.lines.some((line) =>
-        ["comment", "comment_italic", "comment_box"].includes(line.type),
-      ),
+    version.body.some(
+      (section) =>
+        section.type === "comment" ||
+        section.lines.some((line) =>
+          ["comment", "comment_italic", "comment_box"].includes(line.type),
+        ),
     ),
   );
   const detectedKey = detectKey(uniqueChords);

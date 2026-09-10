@@ -44,25 +44,64 @@ const DIRECTIVE_ALIAS_MAP: Record<string, string> = {
 
 /** Known standard directive names (canonical). Used for unknown-directive warnings. */
 const KNOWN_DIRECTIVES = new Set([
-  "title", "subtitle", "artist", "composer", "lyricist", "translator",
-  "copyright", "album", "year", "key", "original_key", "capo",
-  "tempo", "time", "duration", "capo",
-  "song_number", "ccli", "youtube", "meta",
-  "comment", "comment_italic", "comment_box",
-  "chorus", "verse", "bridge", "repeat",
-  "start_of_chorus", "end_of_chorus",
-  "start_of_verse", "end_of_verse",
-  "start_of_bridge", "end_of_bridge",
-  "start_of_tab", "end_of_tab",
-  "start_of_grid", "end_of_grid",
-  "start_of_part", "end_of_part",
-  "start_of_version", "end_of_version",
-  "new_song", "new_page", "column_break",
-  "define", "chord",
-  "textfont", "textsize", "textcolour", "textcolor",
-  "chordfont", "chordsize", "chordcolour", "chordcolor",
-  "tabfont", "tabsize",
-  "gridfont", "gridsize",
+  "title",
+  "subtitle",
+  "artist",
+  "composer",
+  "lyricist",
+  "translator",
+  "copyright",
+  "album",
+  "year",
+  "key",
+  "original_key",
+  "capo",
+  "tempo",
+  "time",
+  "duration",
+  "capo",
+  "song_number",
+  "ccli",
+  "youtube",
+  "meta",
+  "comment",
+  "comment_italic",
+  "comment_box",
+  "chorus",
+  "verse",
+  "bridge",
+  "repeat",
+  "start_of_chorus",
+  "end_of_chorus",
+  "start_of_verse",
+  "end_of_verse",
+  "start_of_bridge",
+  "end_of_bridge",
+  "start_of_tab",
+  "end_of_tab",
+  "start_of_grid",
+  "end_of_grid",
+  "start_of_part",
+  "end_of_part",
+  "start_of_version",
+  "end_of_version",
+  "new_song",
+  "new_page",
+  "column_break",
+  "define",
+  "chord",
+  "textfont",
+  "textsize",
+  "textcolour",
+  "textcolor",
+  "chordfont",
+  "chordsize",
+  "chordcolour",
+  "chordcolor",
+  "tabfont",
+  "tabsize",
+  "gridfont",
+  "gridsize",
   "pagetype",
 ]);
 
@@ -125,7 +164,9 @@ export interface ParsedDirective {
  * Parse the interior of a {…} directive block.
  * Returns null if the string doesn't look like a valid directive.
  */
-export function parseDirectiveContent(interior: string): ParsedDirective | null {
+export function parseDirectiveContent(
+  interior: string,
+): ParsedDirective | null {
   const trimmed = interior.trim();
   if (!trimmed) return null;
 
@@ -146,8 +187,10 @@ export function parseDirectiveContent(interior: string): ParsedDirective | null 
 
   const lowerName = rawName.toLowerCase();
   const resolvedName = DIRECTIVE_ALIAS_MAP[lowerName] ?? lowerName;
-  const wasAlias = resolvedName !== lowerName && lowerName in DIRECTIVE_ALIAS_MAP;
-  const isKnown = KNOWN_DIRECTIVES.has(resolvedName) || resolvedName.startsWith("x_");
+  const wasAlias =
+    resolvedName !== lowerName && lowerName in DIRECTIVE_ALIAS_MAP;
+  const isKnown =
+    KNOWN_DIRECTIVES.has(resolvedName) || resolvedName.startsWith("x_");
 
   return {
     name: resolvedName,
@@ -189,7 +232,9 @@ export function buildDirectiveLine(
   parsed: ParsedDirective,
   options: { expandDirectiveAliases: boolean },
 ): string {
-  const name = options.expandDirectiveAliases ? parsed.name : parsed.rawName.toLowerCase();
+  const name = options.expandDirectiveAliases
+    ? parsed.name
+    : parsed.rawName.toLowerCase();
   const normalizedValue = normalizeDirectiveValue(parsed.name, parsed.value);
 
   if (!parsed.hasColon || parsed.value === "") {
