@@ -1,3 +1,4 @@
+import { analyzeSong } from "./analysis";
 import type {
   ChordProVersion,
   LineAST,
@@ -5,8 +6,8 @@ import type {
   SegmentAST,
   SongAST,
 } from "./parser";
+import { scoreSong } from "./score";
 import { transposeChord } from "./transpose";
-import { analyzeSong } from "./analysis";
 
 export type SimplifyLevel = 0 | 1 | 2 | 3;
 
@@ -61,12 +62,18 @@ function cloneSong(song: SongAST): SongAST {
   return attachSongTransformations(clone);
 }
 
-function forEachVersion(song: SongAST, callback: (version: ChordProVersion) => void) {
+function forEachVersion(
+  song: SongAST,
+  callback: (version: ChordProVersion) => void,
+) {
   if (song.default) callback(song.default);
   for (const variant of song.variants ?? []) callback(variant);
 }
 
-function forEachSegment(song: SongAST, callback: (segment: SegmentAST) => void) {
+function forEachSegment(
+  song: SongAST,
+  callback: (segment: SegmentAST) => void,
+) {
   forEachVersion(song, (version) => {
     for (const section of version.body) {
       for (const line of section.lines) {
@@ -92,15 +99,10 @@ function cleanLyrics(text: string): string {
       (_match, left: string, right: string) =>
         left.length > 1 && right.length > 1 ? left + right : `${left} ${right}`,
     );
-    cleaned = cleaned.replace(
-      /([^\s-]{2,})-([^\s-]{2,})/g,
-      "$1$2",
-    );
+    cleaned = cleaned.replace(/([^\s-]{2,})-([^\s-]{2,})/g, "$1$2");
   }
 
-  return cleaned
-    .replace(/\s+-\s+/g, " ")
-    .replace(/\s+([,.;!?])/g, "$1");
+  return cleaned.replace(/\s+-\s+/g, " ").replace(/\s+([,.;!?])/g, "$1");
 }
 
 function simplifyChord(chord: string, level: SimplifyLevel): string {
@@ -137,7 +139,11 @@ export function attachSongTransformations(song: SongAST): SongAST {
         segment.chord = transposeChord(segment.chord, semitones);
       });
       forEachVersion(next, (version) => {
-        if (version.metadata.key) version.metadata.key = transposeChord(version.metadata.key, semitones);
+        if (version.metadata.key)
+          version.metadata.key = transposeChord(
+            version.metadata.key,
+            semitones,
+          );
       });
     });
   target.withCapo = (capo) =>
@@ -179,7 +185,9 @@ export function attachSongTransformations(song: SongAST): SongAST {
               continue;
             }
             if (line.segments) {
-              const text = line.segments.map((segment) => segment.text).join("");
+              const text = line.segments
+                .map((segment) => segment.text)
+                .join("");
               line.segments = [
                 { chord: "", text: cleanText ? cleanLyrics(text) : text },
               ];
@@ -190,9 +198,10 @@ export function attachSongTransformations(song: SongAST): SongAST {
     });
   target.selectVariant = (id) =>
     updateSong(song, (next) => {
-      const selected = !id || id === "default"
-        ? next.default
-        : next.variants?.find((variant) => variant.id === id);
+      const selected =
+        !id || id === "default"
+          ? next.default
+          : next.variants?.find((variant) => variant.id === id);
       if (!selected) return;
       next.id = selected.id;
       next.name = selected.name;
@@ -209,6 +218,7 @@ export function attachSongTransformations(song: SongAST): SongAST {
       });
     });
   target.analyze = () => analyzeSong(song);
+  target.score = () => scoreSong(song);
   if (song.default) {
     song.sections = song.default.body;
     song.metadata = song.default.metadata;

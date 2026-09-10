@@ -62,6 +62,9 @@ export interface SongAST {
     subtitle?: string;
     artist?: string;
     composer?: string;
+    lyricist?: string;
+    translator?: string;
+    year?: string;
     copyright?: string;
     album?: string;
     key?: string;
@@ -86,6 +89,7 @@ export interface SongAST {
   selectVariant(id?: string | null): SongAST;
   instrument(id?: string | null): SongAST;
   analyze(): import("./analysis").SongAnalysis;
+  score(): import("./score").SongScore;
 }
 
 const TIMING_REGEX = /^(.+?)@([0-9]*\.?[0-9]+)x$/;
@@ -290,7 +294,11 @@ export function parseChordProDocument(content: string): ChordProDocument {
         }
 
         const variantId = slugifyVariantName(versionName);
-        if (!variantId || variantId === "default" || seenVariantIds.has(variantId)) {
+        if (
+          !variantId ||
+          variantId === "default" ||
+          seenVariantIds.has(variantId)
+        ) {
           errors.push(
             `Line ${lineNumber}: Duplicate or invalid variant identifier "${variantId || versionName}".`,
           );
@@ -333,7 +341,8 @@ export function parseChordProDocument(content: string): ChordProDocument {
 
         commitSectionInContext(activeVariantContext);
         if (!activeVariantContext.metadata.title) {
-          activeVariantContext.metadata.title = defaultContext.metadata.title || "Sem Título";
+          activeVariantContext.metadata.title =
+            defaultContext.metadata.title || "Sem Título";
         }
 
         variants.push({
@@ -387,17 +396,23 @@ export function parseChordProDocument(content: string): ChordProDocument {
         case "start_of_grid":
           commitSectionInContext(ctx);
           ctx.isGrid = true;
-          ctx.currentSection = { type: "grid", label: value || "Grid", lines: [] };
+          ctx.currentSection = {
+            type: "grid",
+            label: value || "Grid",
+            lines: [],
+          };
           break;
 
         case "end_of_chorus":
-          if (ctx.currentSection?.type === "chorus") commitSectionInContext(ctx);
+          if (ctx.currentSection?.type === "chorus")
+            commitSectionInContext(ctx);
           break;
         case "end_of_verse":
           if (ctx.currentSection?.type === "verse") commitSectionInContext(ctx);
           break;
         case "end_of_bridge":
-          if (ctx.currentSection?.type === "bridge") commitSectionInContext(ctx);
+          if (ctx.currentSection?.type === "bridge")
+            commitSectionInContext(ctx);
           break;
         case "end_of_tab":
           ctx.isTab = false;
@@ -588,7 +603,8 @@ export function parseChordProDocument(content: string): ChordProDocument {
     );
     commitSectionInContext(activeVariantContext);
     if (!activeVariantContext.metadata.title) {
-      activeVariantContext.metadata.title = defaultContext.metadata.title || "Sem Título";
+      activeVariantContext.metadata.title =
+        defaultContext.metadata.title || "Sem Título";
     }
     variants.push({
       id: activeVariantContext.id,
