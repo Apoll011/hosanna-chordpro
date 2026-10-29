@@ -123,6 +123,36 @@ export function SongViewer({ source }: { source: string }) {
 
 The renderer accepts only a transformed `SongAST`. It derives chord visibility from the AST and reads the selected instrument from `song.metadata.instrument`; call `.removeChords(true)` or `.instrument("guitar")` in the pipeline before rendering.
 
+## Source-preserving transpose
+
+When you need ChordPro **text** back (for saving or MCP proposals) without losing unrelated content, use `transposeChordProSource` instead of round-tripping the AST:
+
+```ts
+import { transposeChordProSource } from "@hosanna/chordpro/parser";
+
+const { content, semitones, fromKey, toKey } = transposeChordProSource(
+  source,
+  { toKey: "A" },
+);
+// or: transposeChordProSource(source, 2)
+```
+
+This rewrites `[chords]` (including timings like `[Am@2x]`) and `{key:}` / `{original_key:}` while preserving lyrics, variants, comments, and unknown directives.
+
+## Capability manifest
+
+```ts
+import {
+  getChordProCapabilities,
+  explainChordProDirective,
+} from "@hosanna/chordpro/parser";
+
+const manifest = getChordProCapabilities();
+const version = explainChordProDirective("start_of_version");
+```
+
+Each directive is marked `parsed`, `formatter-only`, or `unsupported`. Features such as variants, grids, and AST serialization are marked `implemented`, `partial`, or `not_implemented`.
+
 ## Variants
 
 Use version blocks in ChordPro:
@@ -183,7 +213,9 @@ The editor includes ChordPro completion, diagnostics, section shortcuts (`Alt+V`
 
 ## Supported directives
 
-Metadata includes `title`, `subtitle`, `artist`, `composer`, `album`, `copyright`, `key`, `original_key`, `capo`, `tempo`, `time`, `duration`, `ccli`, and `youtube`. Sections include verses, choruses, bridges, tabs, grids, comments, repeats, and named versions.
+Metadata includes `title`, `subtitle`, `artist`, `composer`, `album`, `copyright`, `key`, `original_key`, `capo`, `tempo`, `time`, `duration`, `song_number`, `ccli`, and `youtube`. Sections include verses, choruses, bridges, tabs, grids, comments (with optional `|style` suffixes), repeats, and named versions (`start_of_version` / `end_of_version`).
+
+Comment styles example: `{c: Softly|warning}`. Layout directives such as `define`, fonts, `new_page`, and `column_break` may be recognized by the formatter but are **not** fully supported by Hosanna’s parser or renderer — see `getChordProCapabilities()`.
 
 ## License
 
