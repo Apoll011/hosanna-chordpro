@@ -231,6 +231,19 @@ const ChordProRenderer = React.memo(
                 </div>
               )}
 
+              {metadata.keyNote && (
+                <div
+                  className="mt-4 flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 text-xs px-3 py-2 rounded-xl text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-900/50"
+                  data-testid="key-note"
+                >
+                  <Key className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>
+                    <span className="font-bold">Nota de tom: </span>
+                    {metadata.keyNote}
+                  </span>
+                </div>
+              )}
+
               {effectiveCapo !== 0 && (
                 <div className="mt-4 bg-indigo-50 dark:bg-indigo-950/40 text-xs px-3 py-2 rounded-xl text-indigo-700 dark:text-indigo-300 flex items-center justify-between border border-indigo-100 dark:border-indigo-950/50 flex-wrap gap-2">
                   <div className="flex items-center gap-2 flex-wrap">

@@ -182,6 +182,7 @@ export function lintChordPro(content: string): ChordProDiagnostic[] {
   const diagnostics: ChordProDiagnostic[] = [];
   const blockStack: { name: string; line: number }[] = [];
   let inTab = false;
+  let seenChorus = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -222,8 +223,40 @@ export function lintChordPro(content: string): ChordProDiagnostic[] {
       const value = colonIdx === -1 ? "" : directive.slice(colonIdx + 1).trim();
       const lowerName = rawName.toLowerCase();
 
+      if (lowerName === "start_of_version" || lowerName === "sov_ver") {
+        seenChorus = false;
+      }
+
+      if (lowerName === "chorus" || lowerName === "ch") {
+        if (!seenChorus) {
+          diagnostics.push({
+            line: i,
+            column: line.indexOf("{"),
+            endColumn: line.lastIndexOf("}") + 1,
+            severity: "warning",
+            message:
+              "'{chorus}' repete o refrão anterior, mas ainda não existe nenhum '{start_of_chorus}' antes.",
+            code: "chorus-recall-without-chorus",
+          });
+        }
+        continue;
+      }
+
+      if ((lowerName === "key_note" || lowerName === "tag") && !value) {
+        diagnostics.push({
+          line: i,
+          column: line.indexOf("{"),
+          endColumn: line.lastIndexOf("}") + 1,
+          severity: "warning",
+          message: `'{${rawName}}' precisa de um valor, ex.: {${lowerName}: …}.`,
+          code: "empty-directive-value",
+        });
+        continue;
+      }
+
       if (lowerName in BLOCK_ALIASES) {
         const name = BLOCK_ALIASES[lowerName];
+        if (name === "chorus") seenChorus = true;
         if (name === "tab") inTab = true;
         blockStack.push({ name, line: i });
         continue;

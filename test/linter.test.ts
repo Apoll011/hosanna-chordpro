@@ -22,3 +22,25 @@ describe("ChordPro linter", () => {
     assert.equal(diagnostics.length, 0);
   });
 });
+
+describe("ChordPro linter — chorus recall / tags", () => {
+  it("warns when {chorus} has no previous chorus", () => {
+    const d = lintChordPro("{start_of_verse}\nHi\n{end_of_verse}\n{chorus}");
+    assert.ok(d.some((x) => x.code === "chorus-recall-without-chorus"));
+  });
+
+  it("accepts {chorus} after a chorus block", () => {
+    const d = lintChordPro(
+      "{start_of_chorus}\n[G]Hi\n{end_of_chorus}\n{chorus}",
+    );
+    assert.equal(d.length, 0);
+  });
+
+  it("warns on empty key_note / tag", () => {
+    const d = lintChordPro("{key_note}\n{tag: }\n{key_note: D}");
+    assert.equal(
+      d.filter((x) => x.code === "empty-directive-value").length,
+      2,
+    );
+  });
+});

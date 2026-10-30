@@ -137,6 +137,31 @@ const DIRECTIVES: ChordProDirectiveCapability[] = [
     hosannaSpecific: true,
   },
   {
+    name: "key_note",
+    category: "metadata",
+    support: "parsed",
+    description:
+      "Free-text note about key changes/modulations. Stored as metadata.keyNote and shown by the renderer as a highlighted note under the song header (and in the editor).",
+    hosannaSpecific: true,
+    example: "{key_note: Verso 4 e final modulam para D (meio tom acima)}",
+  },
+  {
+    name: "tag",
+    category: "metadata",
+    support: "parsed",
+    description:
+      "Editor-only label (e.g. a theme). Repeated {tag: …} lines accumulate in metadata.tag (comma-joined). Highlighted in the editor; NOT rendered in the song view.",
+    hosannaSpecific: true,
+    example: "{tag: adoração}",
+  },
+  {
+    name: "arranger",
+    category: "metadata",
+    support: "parsed",
+    description: "Arranger credit (stored as metadata, shown in the footer).",
+    example: "{arranger: Maria Silva}",
+  },
+  {
     name: "comment",
     aliases: ["c"],
     category: "comment",
@@ -206,7 +231,9 @@ const DIRECTIVES: ChordProDirectiveCapability[] = [
     aliases: ["ch"],
     category: "structure",
     support: "parsed",
-    description: "Recall the previous chorus body.",
+    description:
+      "Recall the previous chorus body (repeats the last {start_of_chorus} block without copying it). Optional label: {chorus: Refrão final}. Prefer it over duplicating an unchanged chorus.",
+    example: "{chorus}",
   },
   {
     name: "verse",

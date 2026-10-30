@@ -76,6 +76,11 @@ export interface SongAST {
     youtube?: string;
     ccli?: string;
     duration?: string;
+    /** Free-text note about key changes, from `{key_note: …}` (shown by the renderer). */
+    keyNote?: string;
+    /** Editor-only labels from `{tag: …}` (repeated directives are comma-joined; not rendered). */
+    tag?: string;
+    arranger?: string;
     [key: string]: string | undefined;
   };
   sections: SectionAST[];
@@ -500,6 +505,15 @@ export function parseChordProDocument(content: string): ChordProDocument {
             ctx.metadata["duration"] = (minutes * 60 + seconds).toString();
           } else {
             ctx.metadata["duration"] = value;
+          }
+          break;
+
+        case "tag":
+          // Editor-only labels: repeated `{tag: x}` lines accumulate.
+          if (value) {
+            ctx.metadata["tag"] = ctx.metadata["tag"]
+              ? `${ctx.metadata["tag"]}, ${value}`
+              : value;
           }
           break;
 

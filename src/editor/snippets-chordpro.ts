@@ -31,6 +31,12 @@ export async function registerChordproSnippets(
         "snippet youtube",
         "	{youtube: ${1:url}}",
 
+        "snippet keynote",
+        "	{key_note: ${1:Verso 4 e final modulam para D (meio tom acima)}}",
+
+        "snippet tag",
+        "	{tag: ${1:value}}",
+
         "snippet number",
         "	{song_number: ${1:number}}",
 

@@ -64,3 +64,29 @@ Lyrics
     assert.equal(parseChordPro("{title: Song}").analyze().sections, 0);
   });
 });
+
+describe("key_note / tag / chorus directives", () => {
+  it("stores key_note as metadata.keyNote", () => {
+    const song = parseChordPro(
+      "{title: X}\n{key_note: Verso 4 e final modulam para D (meio tom acima)}",
+    );
+    assert.equal(
+      song.metadata.keyNote,
+      "Verso 4 e final modulam para D (meio tom acima)",
+    );
+  });
+
+  it("accumulates repeated {tag} directives", () => {
+    const song = parseChordPro("{title: X}\n{tag: adoração}\n{tag: lenta}");
+    assert.equal(song.metadata.tag, "adoração, lenta");
+  });
+
+  it("{chorus} recalls the previous chorus body", () => {
+    const song = parseChordPro(
+      "{start_of_chorus}\n[G]Holy\n{end_of_chorus}\n{start_of_verse}\nVerse\n{end_of_verse}\n{chorus}",
+    );
+    const choruses = song.sections.filter((s) => s.type === "chorus");
+    assert.equal(choruses.length, 2);
+    assert.equal(choruses[1].lines.length, choruses[0].lines.length);
+  });
+});
