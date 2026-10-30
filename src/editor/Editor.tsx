@@ -7,6 +7,8 @@ import React, {
   useState,
 } from "react";
 import type { IAceEditorProps } from "react-ace";
+import type { ChordProDiffEditorProps } from "../diff/DiffEditor";
+import { ChordProDiffEditor } from "../diff/DiffEditor";
 import { registerFormatShortcut } from "../formatter/integrations/ace";
 import type { FormatResult } from "../formatter/types";
 import { ChordFinder } from "./ChordFinder";
@@ -529,6 +531,21 @@ const DEFAULT_EDITOR_SETTINGS: Required<EditorSettings> = {
   showLineNumbers: true,
 };
 
+/**
+ * A pending change (e.g. an AI suggestion) to review in place of the text
+ * editor. While set, the editor shows a VS Code-style diff between `value`
+ * and `content` with per-change keep/undo. The user's own text is untouched
+ * until `onAccept` runs.
+ */
+export interface EditorProposal
+  extends Omit<
+    ChordProDiffEditorProps,
+    "original" | "modified" | "theme" | "fontSize"
+  > {
+  /** The proposed full source. */
+  content: string;
+}
+
 export interface EditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -543,9 +560,38 @@ export interface EditorProps {
   mode?: string;
   readOnly?: boolean;
   fallback?: React.ReactNode;
+  /** When set, replaces the text editor with an inline diff review. */
+  proposal?: EditorProposal | null;
 }
 
-export function Editor({
+const DARK_ACE_THEMES = new Set([
+  "dracula",
+  "monokai",
+  "solarized_dark",
+  "tomorrow_night",
+]);
+
+export function Editor(props: EditorProps) {
+  const { proposal, value, settings } = props;
+  if (proposal) {
+    const { content, ...diffProps } = proposal;
+    const theme = settings?.theme;
+    return (
+      <ChordProDiffEditor
+        {...diffProps}
+        original={value}
+        modified={content}
+        fontSize={settings?.fontSize}
+        theme={
+          theme ? (DARK_ACE_THEMES.has(theme) ? "dark" : "light") : "auto"
+        }
+      />
+    );
+  }
+  return <TextEditor {...props} />;
+}
+
+function TextEditor({
   value,
   onChange,
   onSave,

@@ -3,6 +3,7 @@ export {
   default as default,
   preloadEditor,
   type EditorProps,
+  type EditorProposal,
   type EditorSettings,
 } from "./Editor";
 export { ChordFinder, type ChordOccurrence } from "./ChordFinder";

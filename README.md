@@ -33,6 +33,31 @@ npm install react react-dom ace-builds react-ace
 | `@hosanna/chordpro/editor`      | `Editor`, `ChordFinder`, Ace modes, snippets, and editor integrations         |
 | `@hosanna/chordpro/formatter`   | ChordPro formatter and formatter types                                        |
 | `@hosanna/chordpro/instruments` | Instrument profiles and the instrument registry                               |
+| `@hosanna/chordpro/diff`        | `ChordProDiffEditor` (VS Code-style diff review) and the diff engine          |
+
+## Review a proposed change (diff editor)
+
+Pass a `proposal` to `Editor` to swap the text editor for an inline diff against the current `value`. Every change can be kept or undone individually; nothing touches the document until `onAccept` runs.
+
+```tsx
+<Editor
+  value={content}
+  onChange={setContent}
+  proposal={
+    pending && {
+      content: pending.content,
+      title: "AI proposal",
+      onAccept: (next) => {
+        setContent(next); // the proposal minus any undone changes
+        setPending(null);
+      },
+      onReject: () => setPending(null),
+    }
+  }
+/>
+```
+
+`ChordProDiffEditor` is also available standalone (`original`, `modified`, `onAccept`, `onReject`), with inline and side-by-side views, word-level highlights that treat `[chords]` as atomic tokens, collapsible unchanged regions, an overview ruler, and shortcuts (`F7` / `Shift+F7` next/previous change, `Ctrl/Cmd+Enter` apply, `Ctrl/Cmd+Z` undo/keep the active change). Colours come from `--hcd-*` CSS variables; strings from the `labels` prop. The raw engine (`computeDiff`, `resolveHunks`, `wordDiff`) is exported too.
 
 ## Parse and transform a song
 
